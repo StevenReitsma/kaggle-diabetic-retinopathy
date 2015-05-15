@@ -32,6 +32,8 @@ def fit():
     # Read pandas csv labels
     y = util.load_labels()
 
+    y = y[:1000]
+
     X = np.arange(y.shape[0])
 
     #mean, std = io.load_mean_std(r)

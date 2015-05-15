@@ -51,7 +51,7 @@ class ParallelBatchIterator(object):
 			end_index = (i+1) * bs
 
 			indices = self.X[start_index:end_index]
-			batch_keys = self.keys[indices]
+			key_batch = self.keys[indices]
 
 			cur_batch_size = len(indices)
 
@@ -59,10 +59,10 @@ class ParallelBatchIterator(object):
 			y_batch = None
 
 			if self.y is not None:
-				y_batch = self.y_all.loc[batch_keys]['level']
+				y_batch = self.y_all.loc[key_batch]['level']
 				y_batch = y_batch[:, np.newaxis].astype(np.float32)
 
-			for i, key in enumerate(batch_keys):
+			for i, key in enumerate(key_batch):
 				X_batch[i] = scipy.misc.imread("../data/processed/train/" + key + ".jpeg").transpose(2, 0, 1)
 
 			yield self.transform(X_batch, y_batch)

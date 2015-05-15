@@ -31,15 +31,15 @@ def fit():
     io = ImageIO()
     # Read pandas csv labels
     y = util.load_labels()
+
     X = np.arange(y.shape[0])
 
-    r = redis.StrictRedis(db=0)
-
-    mean, std = io.load_mean_std(r)
+    #mean, std = io.load_mean_std(r)
+    mean, std = None, None
     keys = y.index.values
 
-    train_iterator = ParallelBatchIterator(keys, r, BATCH_SIZE, std, mean)
-    test_iterator = ParallelBatchIterator(keys, r, BATCH_SIZE, std, mean)
+    train_iterator = ParallelBatchIterator(keys, y, None, BATCH_SIZE, std, mean)
+    test_iterator = ParallelBatchIterator(keys, y, None, BATCH_SIZE, std, mean)
 
     if REGRESSION:
         y = util.float32(y)
@@ -88,8 +88,8 @@ def fit():
 
         update_learning_rate=theano.shared(util.float32(START_LEARNING_RATE)),
         update_momentum=theano.shared(util.float32(MOMENTUM)),
-        custom_score=('weighted kappa', lambda t, y: kappa(
-            t, y, weights='quadratic')),
+        custom_score=('weighted kappa', lambda true, predicted: kappa(
+            true, predicted, weights='quadratic')),
 
         regression=REGRESSION,
         batch_iterator_train=train_iterator,

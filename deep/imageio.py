@@ -4,26 +4,19 @@ from skimage.io import imread
 from params import *
 import glob
 import os
-from iterators import RedisIterator
+from iterators import LevelDBIterator
 
-import redis
+import leveldb
 
 import util
 
 
 class ImageIO():
 
-    def _load_images_to_redis(self, image_type="train"):
+    def _load_images_to_redis(self, db, image_type="train"):
         fnames = glob.glob(os.path.join(IMAGE_SOURCE, image_type, "*.jpeg"))
 
         n = len(fnames)
-
-        if image_type=="train":
-            db = 0
-        else:
-            db = 1
-
-        r = redis.StrictRedis(db=db)
 
         image_names = []
 
@@ -41,7 +34,7 @@ class ImageIO():
             image = image.transpose(2, 0, 1)
 
             # Save image to hdf5 file
-            r.set(image_name, image.tobytes())
+            db.Put(image_name, image.tobytes())
 
             i += 1
             if i % 100 == 0:
@@ -53,19 +46,19 @@ class ImageIO():
         """
         Writes all images to a binary file.
         """
+        db_train = leveldb.LevelDB('./dbtrain')
+
         # Write images to file
-        keys = self._load_images_to_redis(image_type="train")
+        keys = self._load_images_to_redis(db_train, image_type="train")
 
         print "Computing mean and standard deviation..."
 
         # Compute mean and standard deviation and write to hdf5 file
-        var, mean = self.online_variance(image_type="train", keys=keys)
+        var, mean = self.online_variance(db_train, image_type="train", keys=keys)
         std = np.sqrt(var)
 
-        r = redis.StrictRedis(db=0)
-
-        r.set('mean', mean.tobytes())
-        r.set('std', std.tobytes())
+        db_train.Put('mean', mean.tobytes())
+        db_train.Put('std', std.tobytes())
 
         print "Done!"
 
@@ -87,18 +80,14 @@ class ImageIO():
 
         return mean, std
 
-    def online_variance(self, image_type, keys):
-        db = 0 if image_type == 'train' else 1
-        r = redis.StrictRedis(db=db)
-
+    def online_variance(self, db, image_type, keys):
         n = 0
         mean = 0.0
         M2 = 0
 
+        data = LevelDBIterator(r, keys)
 
-        redisData= RedisIterator(r, keys)
-
-        for i, x in enumerate(redisData):
+        for i, x in enumerate(data):
             n = n + 1
             delta = x - mean
             mean = mean + delta/n

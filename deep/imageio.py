@@ -6,7 +6,6 @@ import glob
 import os
 from iterators import RedisIterator
 
-from StringIO import StringIO
 import redis
 
 import util
@@ -16,8 +15,6 @@ class ImageIO():
 
     def _load_images_to_redis(self, image_type="train"):
         fnames = glob.glob(os.path.join(IMAGE_SOURCE, image_type, "*.jpeg"))
-
-        fnames = fnames[:1000]
 
         n = len(fnames)
 
@@ -84,22 +81,13 @@ class ImageIO():
 
         return X, y
 
-    def get_hdf5_train_stream(self):
-        f = h5py.File(IM2BIN_OUTPUT, "r")
-        X = f['X_train']
-        y = f['y_train']
-
-        return X, y
-
-    def load_mean_std(self):
-        f = h5py.File(IM2BIN_OUTPUT, "r")
-        mean = f['mean']
-        std = f['std']
+    def load_mean_std(self, r):
+        mean = r.get('mean')
+        std = r.get('std')
 
         return mean, std
 
     def online_variance(self, image_type, keys):
-
         db = 0 if image_type == 'train' else 1
         r = redis.StrictRedis(db=db)
 

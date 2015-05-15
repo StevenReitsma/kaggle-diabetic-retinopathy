@@ -3,13 +3,14 @@ from lasagne import layers, nonlinearities
 from nolearn import NeuralNet
 import theano
 from params import *
-from util import *
+import util
 from iterators import ScalingBatchIterator, ParallelBatchIterator
 from learning_rate import AdjustVariable
 from early_stopping import EarlyStopping
 from imageio import ImageIO
 from skll.metrics import kappa
 from iterators import DataAugmentationBatchIterator
+import redis
 
 # Import cuDNN if using GPU
 if USE_GPU:
@@ -27,17 +28,21 @@ np.random.seed(42)
 
 
 def fit():
-    # Load complete data set and mean into memory
-    # If you don't have enough memory to do this, lower the amount of samples that are being used in imageio.py
-    # This will be changed to work with disk streaming later
     io = ImageIO()
-    X, y = io.get_hdf5_train_stream()
-    mean, std = io.load_mean_std()
+    # Read pandas csv labels
+    y = util.load_labels()
+    X = np.arange(y.shape[0])
 
-    Xindices = np.arange(X.shape[0])
+    r = redis.StrictRedis(db=0)
+
+    mean, std = io.load_mean_std(r)
+    keys = y.index.values
+
+    train_iterator = ParallelBatchIterator(keys, r, BATCH_SIZE, std, mean)
+    test_iterator = ParallelBatchIterator(keys, r, BATCH_SIZE, std, mean)
 
     if REGRESSION:
-        y = float32(y)
+        y = util.float32(y)
         y = y[:, np.newaxis]
 
     net = NeuralNet(
@@ -81,16 +86,14 @@ def fit():
         output_num_units=1 if REGRESSION else 5,
         output_nonlinearity=None if REGRESSION else nonlinearities.softmax,
 
-        update_learning_rate=theano.shared(float32(START_LEARNING_RATE)),
-        update_momentum=theano.shared(float32(MOMENTUM)),
+        update_learning_rate=theano.shared(util.float32(START_LEARNING_RATE)),
+        update_momentum=theano.shared(util.float32(MOMENTUM)),
         custom_score=('weighted kappa', lambda t, y: kappa(
             t, y, weights='quadratic')),
 
         regression=REGRESSION,
-        batch_iterator_train=ParallelBatchIterator(Xset = X,
-            batch_size=BATCH_SIZE, mean=mean, std=std),
-        batch_iterator_test=ParallelBatchIterator(Xset = X,
-            batch_size=BATCH_SIZE, mean=mean, std=std),
+        batch_iterator_train=train_iterator,
+        batch_iterator_test=test_iterator,
         on_epoch_finished=[
             AdjustVariable('update_learning_rate', start=START_LEARNING_RATE),
             EarlyStopping(patience=50),
@@ -100,7 +103,7 @@ def fit():
         eval_size=0.1,
     )
 
-    net.fit(Xindices, y)
+    net.fit(X, y)
 
     if REGRESSION:
     	hist, _ = np.histogram(np.minimum(4, np.maximum(0, np.round(net.predict_proba(X)))), bins=5)

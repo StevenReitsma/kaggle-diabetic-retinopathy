@@ -35,13 +35,9 @@ class ParallelBatchIterator(object):
 		self.std = std
 		self.r = r
 
-		# Read CSV file with labels
-		y_data = pd.DataFrame.from_csv(
-			os.path.join(IMAGE_SOURCE, "..", "trainLabels.csv"))
-
-
 	def __call__(self, X, y=None):
-		self.X, self.y = X, y
+		self.X = X
+		self.y = y
 		return self
 
 	def gen(self):
@@ -49,26 +45,20 @@ class ParallelBatchIterator(object):
 		bs = self.batch_size
 
 		for i in xrange((n_samples + bs - 1) // bs):
-
 			start_index = i * bs
 			end_index = (i+1) * bs
 
 			indices = self.X[start_index:end_index]
 			batch_keys = self.keys[indices]
 
-			pipe = r.pipeline()
+			pipe = self.r.pipeline()
 
 			y_batch = None
 
 			if self.y is not None:
-				y_batch = np.zeros((self.batch_size,))
+				y_batch = self.y[indices]
 
 			for i, key in enumerate(batch_keys):
-				if self.y is not None:
-					# Find `level` for `image_name` in trainLabels.csv file
-					label = self.y_data.loc[key]['level']
-					y_batch[i] = label
-
 				pipe.get(key)
 
 			X_batch = pipe.execute()

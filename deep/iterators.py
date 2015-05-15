@@ -71,7 +71,7 @@ class ParallelBatchIterator(object):
 
 	def __iter__(self):
 		import Queue
-		queue = Queue.Queue(maxsize=32)
+		queue = Queue.Queue(maxsize=16)
 		sentinel = object()  # guaranteed unique reference
 
 		# define producer (putting items into queue)
@@ -105,14 +105,12 @@ class RedisIterator():
 	def __init__(self, redis, keys):
 		self.r = redis
 		self.keys = keys
-		self.index = 0
 
 	def __iter__(self):
-		while self.index < len(self.keys):
-			_string = self.r.get(self.keys[self.index])
+		for key in self.keys:
+			_string = self.r.get(key)
 			_dat = util.bin2array(_string)
 			yield _dat
-			self.index += 1
 
 class DataAugmentationBatchIterator(BatchIterator):
 	"""

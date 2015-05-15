@@ -76,7 +76,7 @@ class ParallelBatchIterator(object):
 		def producer():
 			for item in self.gen():
 				queue.put(item)
-				#print ">>>>> P:\t%i" % (queue.qsize())
+				print ">>>>> P:\t%i" % (queue.qsize())
 			queue.put(sentinel)
 
 		# start producer (in a background thread)
@@ -91,7 +91,7 @@ class ParallelBatchIterator(object):
 			yield item
 			queue.task_done()
 			item = queue.get()
-			#print "C:\t%i" % (queue.qsize())
+			print "C:\t%i" % (queue.qsize())
 
 	def transform(self, Xb, yb):
 		# Normalize

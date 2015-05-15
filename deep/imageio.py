@@ -5,9 +5,9 @@ from params import *
 import glob
 import os
 from iterators import LevelDBIterator
+import scipy
 
 import leveldb
-
 import util
 
 
@@ -28,7 +28,6 @@ class ImageIO():
             image_name = fileName.split('/')[-1][:-5]
             image_names.append(image_name)
 
-            # Read in the image as grey-scale
             image = imread(fileName, as_grey=False)
             # NOTE TO SELF: when using channels, dimshuffle from 01c to c01
             image = image.transpose(2, 0, 1)
@@ -102,5 +101,44 @@ class ImageIO():
         variance = M2/(n - 1)
         return variance, mean
 
+
+    def calc_variance(self, image_type="train"):
+        fnames = glob.glob(os.path.join(IMAGE_SOURCE, image_type, "*.jpeg"))
+
+        nl = len(fnames)
+
+        n = 0
+        mean = 0.0
+        M2 = 0
+
+        i = 0
+        for fileName in fnames:
+
+            image = imread(fileName, as_grey=False)
+
+            n = n + 1
+            delta = image - mean
+            mean = mean + delta/n
+            M2 = M2 + delta*(image - mean)
+
+
+            i += 1
+            if i % 100 == 0:
+                print "%.1f %% done" % (i * 100. / nl)
+
+        if n < 2:
+            return 0,image
+
+        variance = M2/(n - 1)
+        std = np.sqrt(variance)
+
+        scipy.misc.imsave('../data/processed/std.png', std)
+        scipy.misc.imsave('../data/processed/mean.png', mean)
+
+        return variance, mean
+
+
+
+
 if __name__ == "__main__":
-    ImageIO().im2bin_full()
+    var, mean = ImageIO().calc_variance()

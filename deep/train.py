@@ -32,7 +32,7 @@ def fit():
     # Read pandas csv labels
     y = util.load_labels()
 
-    y = y[:1000]
+    #y = y[:1000]
 
     X = np.arange(y.shape[0])
 

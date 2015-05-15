@@ -4,6 +4,8 @@ from params import *
 import skimage
 from skimage import transform
 
+import util
+
 class ScalingBatchIterator(BatchIterator):
 	"""
 	Scales images by subtracting mean and dividing by standard deviation.
@@ -25,12 +27,18 @@ class ScalingBatchIterator(BatchIterator):
 		return Xbb, yb
 
 class ParallelBatchIterator(object):
-	def __init__(self, Xset, batch_size, std, mean):
+	def __init__(self, keys, r, batch_size, std, mean):
 		self.batch_size = batch_size
 
-		self.Xset = Xset
+		self.keys = keys
 		self.mean = mean
 		self.std = std
+		self.r = r
+
+		# Read CSV file with labels
+		y_data = pd.DataFrame.from_csv(
+			os.path.join(IMAGE_SOURCE, "..", "trainLabels.csv"))
+
 
 	def __call__(self, X, y=None):
 		self.X, self.y = X, y
@@ -39,14 +47,34 @@ class ParallelBatchIterator(object):
 	def gen(self):
 		n_samples = self.X.shape[0]
 		bs = self.batch_size
-		for i in range((n_samples + bs - 1) // bs):
-			sl = slice(i * bs, (i + 1) * bs)
-			Xb = self.Xset[self.X[i*bs:(i+1)*bs].tolist()]
+
+		for i in xrange((n_samples + bs - 1) // bs):
+
+			start_index = i * bs
+			end_index = (i+1) * bs
+
+			indices = self.X[start_index:end_index]
+			batch_keys = self.keys[indices]
+
+			pipe = r.pipeline()
+
+			y_batch = None
+
 			if self.y is not None:
-				yb = self.y[sl]
-			else:
-				yb = None
-			yield self.transform(Xb, yb)
+				y_batch = np.zeros((self.batch_size,))
+
+			for i, key in enumerate(batch_keys):
+				if self.y is not None:
+					# Find `level` for `image_name` in trainLabels.csv file
+					label = self.y_data.loc[key]['level']
+					y_batch[i] = label
+
+				pipe.get(key)
+
+			X_batch = pipe.execute()
+			X_batch = map(util.bin2array, X_batch)
+
+			yield self.transform(X_batch, y_batch)
 
 	def __iter__(self):
 		import Queue
@@ -79,6 +107,20 @@ class ParallelBatchIterator(object):
 		Xbb = (Xb - self.mean) / self.std
 
 		return Xbb, yb
+
+class RedisIterator():
+	def __init__(self, redis, keys):
+		self.r = redis
+		self.keys = keys
+		self.index = 0
+
+	def __iter__(self):
+		while self.index < len(self.keys):
+			_string = self.r.get(self.keys[self.index])
+			_dat = util.bin2array(_string)
+			yield _dat
+			self.index += 1
+
 
 class DataAugmentationBatchIterator(BatchIterator):
 	"""
@@ -127,9 +169,9 @@ class DataAugmentationBatchIterator(BatchIterator):
 		tform_uncenter = transform.SimilarityTransform(translation=center_shift)
 
 		def build_augmentation_transform(zoom=1.0, rotation=0, shear=0, translation=(0, 0)):
-			tform_augment = transform.AffineTransform(scale=(1/zoom, 1/zoom), 
-													  rotation=np.deg2rad(rotation), 
-													  shear=np.deg2rad(shear), 
+			tform_augment = transform.AffineTransform(scale=(1/zoom, 1/zoom),
+													  rotation=np.deg2rad(rotation),
+													  shear=np.deg2rad(shear),
 													  translation=translation)
 			tform = tform_center + tform_augment + tform_uncenter # shift to center, augment, shift back (for the rotation/shearing)
 			return tform

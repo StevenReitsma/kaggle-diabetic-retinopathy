@@ -4,26 +4,31 @@ from skimage.io import imread
 from params import *
 import glob
 import os
+from iterators import RedisIterator
+
+from StringIO import StringIO
+import redis
+
+import util
 
 
 class ImageIO():
 
-    def _load_images_from_disk(self, image_type="train"):
+    def _load_images_to_redis(self, image_type="train"):
         fnames = glob.glob(os.path.join(IMAGE_SOURCE, image_type, "*.jpeg"))
 
-        fnames = fnames[:5000]
-
-        # Read CSV file with labels
-        y_data = pd.DataFrame.from_csv(
-            os.path.join(IMAGE_SOURCE, "..", "trainLabels.csv"))
+        fnames = fnames[:1000]
 
         n = len(fnames)
 
-        # Create hdf5 file on disk
-        f = h5py.File(IM2BIN_OUTPUT, "w")
-        dsetX = f.create_dataset(
-            "X_train", (n, CHANNELS, PIXELS, PIXELS), dtype=np.float32)
-        dsety = f.create_dataset("y_train", (n,), dtype=np.int32)
+        if image_type=="train":
+            db = 0
+        else:
+            db = 1
+
+        r = redis.StrictRedis(db=db)
+
+        image_names = []
 
         i = 0
         for fileName in fnames:
@@ -31,9 +36,7 @@ class ImageIO():
 
             # Take filename and remove jpeg extension
             image_name = fileName.split('/')[-1][:-5]
-            # Find `level` for `image_name` in trainLabels.csv file
-            label = y_data.loc[image_name]['level']
-            dsety[i] = label
+            image_names.append(image_name)
 
             # Read in the image as grey-scale
             image = imread(fileName, as_grey=False)
@@ -41,34 +44,31 @@ class ImageIO():
             image = image.transpose(2, 0, 1)
 
             # Save image to hdf5 file
-            dsetX[i] = image
+            r.set(image_name, image.tobytes())
 
             i += 1
-            if i % 500 == 0:
+            if i % 100 == 0:
                 print "%.1f %% done" % (i * 100. / n)
+        return image_names
 
-        f.close()
 
     def im2bin_full(self):
         """
         Writes all images to a binary file.
         """
         # Write images to file
-        self._load_images_from_disk(image_type="train")
-
-        f = h5py.File(IM2BIN_OUTPUT, "r+")
-        X = f['X_train']
+        keys = self._load_images_to_redis(image_type="train")
 
         print "Computing mean and standard deviation..."
 
         # Compute mean and standard deviation and write to hdf5 file
-        std, mean = np.sqrt(self.online_variance(X))
+        var, mean = self.online_variance(image_type="train", keys=keys)
+        std = np.sqrt(var)
 
-        meanSet = f.create_dataset("mean", mean.shape, dtype=np.float32)
-        stdSet = f.create_dataset("std", std.shape, dtype=np.float32)
+        r = redis.StrictRedis(db=0)
 
-        meanSet[...] = mean
-        stdSet[...] = std
+        r.set('mean', mean.tobytes())
+        r.set('std', std.tobytes())
 
         print "Done!"
 
@@ -98,23 +98,30 @@ class ImageIO():
 
         return mean, std
 
-    def online_variance(self, data):
+    def online_variance(self, image_type, keys):
+
+        db = 0 if image_type == 'train' else 1
+        r = redis.StrictRedis(db=db)
+
         n = 0
         mean = 0.0
         M2 = 0
-     
-        for i, x in enumerate(data):
+
+
+        redisData= RedisIterator(r, keys)
+
+        for i, x in enumerate(redisData):
             n = n + 1
             delta = x - mean
             mean = mean + delta/n
             M2 = M2 + delta*(x - mean)
 
-            if i % 1000 == 0:
-                print "%.2f%%" % (float(i)/data.shape[0]*100)
-     
+            if i % 100 == 0:
+                print "%.2f%%" % (float(i)/len(keys)*100)
+
         if n < 2:
             return 0
-     
+
         variance = M2/(n - 1)
         return variance, mean
 

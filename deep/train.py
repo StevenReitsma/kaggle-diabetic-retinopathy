@@ -36,12 +36,11 @@ def fit():
 
     X = np.arange(y.shape[0])
 
-    #mean, std = io.load_mean_std(r)
-    mean, std = None, None
+    mean, std = io.load_mean_std()
     keys = y.index.values
 
-    train_iterator = ParallelBatchIterator(keys, y, None, BATCH_SIZE, std, mean)
-    test_iterator = ParallelBatchIterator(keys, y, None, BATCH_SIZE, std, mean)
+    train_iterator = ParallelBatchIterator(keys, y, BATCH_SIZE, std, mean)
+    test_iterator = ParallelBatchIterator(keys, y, BATCH_SIZE, std, mean)
 
     if REGRESSION:
         y = util.float32(y)

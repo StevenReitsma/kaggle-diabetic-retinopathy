@@ -30,14 +30,14 @@ if __name__ == '__main__':
 
     for c, count in enumerate(gen_sizes):
         for i, count in enumerate(range(count)):
-            image_name = str(c)+'-'+str(i)+'.jpeg'
-            path = '../data/processed/train_mock/'+image_name
+            image_name = str(c)+'-'+str(i)
+            path = '../data/processed_mock/train/'+image_name+'.jpeg'
             labels[image_name] = str(c)
             scipy.misc.imsave(path, images[c])
 
     print labels
 
-    with open("../data/mockTrainLables.csv", "w") as text_file:
-        text_file.write("image, level")
+    with open("../data/trainLabels.csv", "w") as text_file:
+        text_file.write("image,level")
         for image, label in labels.iteritems():
             text_file.write('\n'+image +','+ label)

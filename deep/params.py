@@ -1,11 +1,10 @@
-IMAGE_SOURCE = "../data/processed"
-IM2BIN_OUTPUT = "../data/processed/images.hdf5"
+IMAGE_SOURCE = "../data/processed_mock"
 
 PIXELS = 256
 USE_GPU = True
 
-BATCH_SIZE = 128
-START_LEARNING_RATE = 0.01
+BATCH_SIZE = 64
+START_LEARNING_RATE = 0.001
 MOMENTUM = 0.9
 
 CHANNELS = 3
@@ -17,4 +16,4 @@ AUGMENTATION_PARAMS = {
 			'shear_range': (0, 0),
 			'translation_range': (-5, 5),
 			'do_flip': True
-		}
+}

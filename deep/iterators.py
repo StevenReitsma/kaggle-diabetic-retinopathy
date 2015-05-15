@@ -28,13 +28,12 @@ class ScalingBatchIterator(BatchIterator):
 		return Xbb, yb
 
 class ParallelBatchIterator(object):
-	def __init__(self, keys, y_all, r, batch_size, std, mean):
+	def __init__(self, keys, y_all, batch_size, std, mean):
 		self.batch_size = batch_size
 
 		self.keys = keys
 		self.mean = mean
 		self.std = std
-		self.r = r
 		self.y_all = y_all
 
 	def __call__(self, X, y=None):
@@ -58,12 +57,15 @@ class ParallelBatchIterator(object):
 			X_batch = np.zeros((cur_batch_size, CHANNELS, PIXELS, PIXELS), dtype=np.float32)
 			y_batch = None
 
+			#subdir = "train" if self.y is not None else "test"
+			subdir = "train"
+
 			if self.y is not None:
 				y_batch = self.y_all.loc[key_batch]['level']
 				y_batch = y_batch[:, np.newaxis].astype(np.float32)
 
 			for i, key in enumerate(key_batch):
-				X_batch[i] = scipy.misc.imread("../data/processed/train/" + key + ".jpeg").transpose(2, 0, 1)
+				X_batch[i] = scipy.misc.imread(IMAGE_SOURCE+"/" + subdir + "/" + key + ".jpeg").transpose(2, 0, 1)
 
 			yield self.transform(X_batch, y_batch)
 
@@ -76,7 +78,7 @@ class ParallelBatchIterator(object):
 		def producer():
 			for item in self.gen():
 				queue.put(item)
-				print ">>>>> P:\t%i" % (queue.qsize())
+				#print ">>>>> P:\t%i" % (queue.qsize())
 			queue.put(sentinel)
 
 		# start producer (in a background thread)
@@ -91,12 +93,11 @@ class ParallelBatchIterator(object):
 			yield item
 			queue.task_done()
 			item = queue.get()
-			print "C:\t%i" % (queue.qsize())
+			#print "C:\t%i" % (queue.qsize())
 
 	def transform(self, Xb, yb):
 		# Normalize
-		#Xbb = (Xb - self.mean) / self.std
-		Xbb = Xb / 255.
+		Xbb = (Xb - self.mean) / self.std
 
 		return Xbb, yb
 
@@ -112,20 +113,6 @@ class RedisIterator():
 			_dat = util.bin2array(_string)
 			yield _dat
 			self.index += 1
-
-class LevelDBIterator():
-	def __init__(self, db, keys):
-		self.db = db
-		self.keys = keys
-		self.index = 0
-
-	def __iter__(self):
-		while self.index < len(self.keys):
-			_string = self.db.Get(self.keys[self.index])
-			_dat = util.bin2array(_string)
-			yield _dat
-			self.index += 1
-
 
 class DataAugmentationBatchIterator(BatchIterator):
 	"""

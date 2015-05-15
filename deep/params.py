@@ -1,10 +1,10 @@
-IMAGE_SOURCE = "../data/processed_mock"
+IMAGE_SOURCE = "../data/processed"
 
 PIXELS = 256
 USE_GPU = True
 
 BATCH_SIZE = 64
-START_LEARNING_RATE = 0.001
+START_LEARNING_RATE = 0.01
 MOMENTUM = 0.9
 
 CHANNELS = 3

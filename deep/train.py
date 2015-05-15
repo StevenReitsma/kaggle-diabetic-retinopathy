@@ -11,6 +11,7 @@ from imageio import ImageIO
 from skll.metrics import kappa
 from iterators import DataAugmentationBatchIterator
 import redis
+import stats
 
 # Import cuDNN if using GPU
 if USE_GPU:
@@ -98,6 +99,7 @@ def fit():
         on_epoch_finished=[
             AdjustVariable('update_learning_rate', start=START_LEARNING_RATE),
             EarlyStopping(patience=50),
+            stats.Stat()
         ],
         max_epochs=500,
         verbose=1,

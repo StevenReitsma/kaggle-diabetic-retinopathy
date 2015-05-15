@@ -311,6 +311,8 @@ class NeuralNet(BaseEstimator):
         first_iteration = True
         num_epochs_past = len(self.train_history_)
 
+
+
         while epoch < self.max_epochs:
             epoch += 1
 
@@ -339,8 +341,11 @@ class NeuralNet(BaseEstimator):
             avg_train_loss = np.mean(train_losses)
             avg_valid_loss = np.mean(valid_losses)
             avg_valid_accuracy = np.mean(valid_accuracies)
+
             if custom_score:
                 avg_custom_score = np.mean(custom_score)
+
+
 
             if avg_train_loss < best_train_loss:
                 best_train_loss = avg_train_loss
@@ -356,6 +361,7 @@ class NeuralNet(BaseEstimator):
                 ('valid_best', avg_valid_loss if best_valid else None),
                 ('train/val', avg_train_loss / avg_valid_loss),
                 ('valid_accuracy', avg_valid_accuracy),
+                ('custom_score', avg_custom_score)
                 ])
             headers = {
                 'epoch': 'epoch', 'train_loss': 'train loss',

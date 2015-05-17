@@ -18,3 +18,4 @@ class Stat(object):
 		ax.set_ylabel("Kappa")
 
 		plt.savefig('kappa' + str(int(self.ts)) + '.png')
+		plt.close("all")

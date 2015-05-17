@@ -6,6 +6,7 @@ from skimage import transform
 import scipy
 
 import util
+import time
 
 class ScalingBatchIterator(BatchIterator):
 	"""
@@ -64,10 +65,16 @@ class ParallelBatchIterator(object):
 				y_batch = self.y_all.loc[key_batch]['level']
 				y_batch = y_batch[:, np.newaxis].astype(np.float32)
 
+			#print "Reading start ", time.time()
 			for i, key in enumerate(key_batch):
-				X_batch[i] = scipy.misc.imread(IMAGE_SOURCE+"/" + subdir + "/" + key + ".jpeg").transpose(2, 0, 1)
+				
+				X_batch[i] = scipy.misc.imread(IMAGE_SOURCE + "/" + subdir + "/" + key + ".jpeg").transpose(2, 0, 1)
+
+			#print "Transform start ", time.time()
 
 			yield self.transform(X_batch, y_batch)
+
+			#print "Transform end ", time.time()
 
 	def __iter__(self):
 		import Queue
@@ -112,72 +119,58 @@ class RedisIterator():
 			_dat = util.bin2array(_string)
 			yield _dat
 
-class DataAugmentationBatchIterator(BatchIterator):
+class AugmentingParallelBatchIterator(ParallelBatchIterator):
 	"""
 	Randomly changes images in the batch. Behaviour can be defined in params.py.
-	Give mean and std of training set.
 	"""
-	def __init__(self, batch_size, mean, std):
-		super(DataAugmentationBatchIterator, self).__init__(batch_size)
-		self.mean = mean
-		self.std = std
+	def __init__(self, keys, y_all, batch_size, std, mean):
+		super(AugmentingParallelBatchIterator, self).__init__(keys, y_all, batch_size, std, mean)
+
+		# Set center point
+		center_shift = np.array((PIXELS, PIXELS)) / 2. - 0.5
+		self.tform_center = transform.SimilarityTransform(translation=-center_shift)
+		self.tform_uncenter = transform.SimilarityTransform(translation=center_shift)
+
+		# Identities
+		self.tform_identity = skimage.transform.AffineTransform()
+		self.tform_ds = skimage.transform.AffineTransform()
 
 	def transform(self, Xb, yb):
-		Xb, yb = super(DataAugmentationBatchIterator, self).transform(Xb, yb)
-
 		Xbb = np.zeros((Xb.shape[0], Xb.shape[1], Xb.shape[2], Xb.shape[3]), dtype=np.float32)
 
-		IMAGE_WIDTH = PIXELS
-		IMAGE_HEIGHT = PIXELS
-
+		# Random number 0-1 whether we flip or not
 		random_flip = np.random.randint(2)
 
-		def fast_warp(img, tf, output_shape=(PIXELS,PIXELS), mode='nearest'):
-			"""
-			This wrapper function is about five times faster than skimage.transform.warp, for our use case.
-			"""
+		# Translation shift
+		shift_x = np.random.uniform(*AUGMENTATION_PARAMS['translation_range'])
+		shift_y = np.random.uniform(*AUGMENTATION_PARAMS['translation_range'])
+
+		# Rotation, shear, zoom shift
+		translation = (shift_x, shift_y)
+		rotation = np.random.uniform(*AUGMENTATION_PARAMS['rotation_range'])
+		shear = np.random.uniform(*AUGMENTATION_PARAMS['shear_range'])
+		log_zoom_range = [np.log(z) for z in AUGMENTATION_PARAMS['zoom_range']]
+		zoom = np.exp(np.random.uniform(*log_zoom_range))
+
+		# Whether to do flipping
+		# Flipping is equivalent to shearing 180 degrees and rotating 180 degrees
+		if AUGMENTATION_PARAMS['do_flip'] and random_flip > 0:
+			shear += 180
+			rotation += 180
+
+		# Create augmentation transformer
+		tform_augment = transform.AffineTransform(scale=(1/zoom, 1/zoom), rotation=np.deg2rad(rotation), shear=np.deg2rad(shear), translation=translation)
+		tform_augment = self.tform_center + tform_augment + self.tform_uncenter
+
+		def fast_warp(img, tf, output_shape=(PIXELS, PIXELS), mode='nearest'):
 			return skimage.transform._warps_cy._warp_fast(img, tf.params, output_shape=output_shape, mode=mode)
 
-		def random_perturbation_transform(zoom_range, rotation_range, shear_range, translation_range, do_flip=True):
-			shift_x = np.random.uniform(*translation_range)
-			shift_y = np.random.uniform(*translation_range)
-
-			translation = (shift_x, shift_y)
-			rotation = np.random.uniform(*rotation_range)
-			shear = np.random.uniform(*shear_range)
-			log_zoom_range = [np.log(z) for z in zoom_range]
-			zoom = np.exp(np.random.uniform(*log_zoom_range))
-
-			if do_flip and random_flip > 0: # flip half of the time
-				shear += 180
-				rotation += 180
-
-			return build_augmentation_transform(zoom, rotation, shear, translation)
-
-		center_shift = np.array((IMAGE_HEIGHT, IMAGE_WIDTH)) / 2. - 0.5
-		tform_center = transform.SimilarityTransform(translation=-center_shift)
-		tform_uncenter = transform.SimilarityTransform(translation=center_shift)
-
-		def build_augmentation_transform(zoom=1.0, rotation=0, shear=0, translation=(0, 0)):
-			tform_augment = transform.AffineTransform(scale=(1/zoom, 1/zoom),
-													  rotation=np.deg2rad(rotation),
-													  shear=np.deg2rad(shear),
-													  translation=translation)
-			tform = tform_center + tform_augment + tform_uncenter # shift to center, augment, shift back (for the rotation/shearing)
-			return tform
-
-		tform_augment = random_perturbation_transform(**AUGMENTATION_PARAMS)
-		tform_identity = skimage.transform.AffineTransform()
-		tform_ds = skimage.transform.AffineTransform()
-
+		# For every image, perform the actual warp, per channel
 		for i in range(Xb.shape[0]):
-			Xbb[i, 0, :, :] = fast_warp(Xb[i][0], tform_ds + tform_augment + tform_identity, output_shape=(PIXELS,PIXELS), mode='nearest').astype('float32')
-			if CHANNELS == 3:
-				Xbb[i, 1, :, :] = fast_warp(Xb[i][1], tform_ds + tform_augment + tform_identity, output_shape=(PIXELS,PIXELS), mode='nearest').astype('float32')
-				Xbb[i, 2, :, :] = fast_warp(Xb[i][2], tform_ds + tform_augment + tform_identity, output_shape=(PIXELS,PIXELS), mode='nearest').astype('float32')
+			for c in range(Xb.shape[1]):
+				Xbb[i, c, :, :] = fast_warp(Xb[i][c], self.tform_ds + tform_augment + self.tform_identity).astype('float32')
 
-			# Subtract mean and divide by std
-			Xbb[i, :, :, :] -= self.mean
-			Xbb[i, :, :, :] /= self.std
+		# Do normalization in super-method
+		Xbb, yb = super(AugmentingParallelBatchIterator, self).transform(Xbb, yb)
 
 		return Xbb, yb

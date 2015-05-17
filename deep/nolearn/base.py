@@ -361,7 +361,6 @@ class NeuralNet(BaseEstimator):
                 ('valid_best', avg_valid_loss if best_valid else None),
                 ('train/val', avg_train_loss / avg_valid_loss),
                 ('valid_accuracy', avg_valid_accuracy),
-                ('custom_score', avg_custom_score)
                 ])
             headers = {
                 'epoch': 'epoch', 'train_loss': 'train loss',

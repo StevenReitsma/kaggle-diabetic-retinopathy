@@ -4,13 +4,11 @@ from nolearn import NeuralNet
 import theano
 from params import *
 import util
-from iterators import ScalingBatchIterator, ParallelBatchIterator
+from iterators import ParallelBatchIterator, AugmentingParallelBatchIterator
 from learning_rate import AdjustVariable
 from early_stopping import EarlyStopping
 from imageio import ImageIO
 from skll.metrics import kappa
-from iterators import DataAugmentationBatchIterator
-import redis
 import stats
 
 # Import cuDNN if using GPU
@@ -27,20 +25,17 @@ Maxout = layers.pool.FeaturePoolLayer
 # Fix seed
 np.random.seed(42)
 
-
 def fit():
     io = ImageIO()
     # Read pandas csv labels
     y = util.load_labels()
-
-    #y = y[:1000]
 
     X = np.arange(y.shape[0])
 
     mean, std = io.load_mean_std()
     keys = y.index.values
 
-    train_iterator = ParallelBatchIterator(keys, y, BATCH_SIZE, std, mean)
+    train_iterator = AugmentingParallelBatchIterator(keys, y, BATCH_SIZE, std, mean)
     test_iterator = ParallelBatchIterator(keys, y, BATCH_SIZE, std, mean)
 
     if REGRESSION:
@@ -90,7 +85,7 @@ def fit():
 
         update_learning_rate=theano.shared(util.float32(START_LEARNING_RATE)),
         update_momentum=theano.shared(util.float32(MOMENTUM)),
-        custom_score=('weighted kappa', lambda true, predicted: kappa(
+        custom_score=('kappa', lambda true, predicted: kappa(
             true, predicted, weights='quadratic')),
 
         regression=REGRESSION,

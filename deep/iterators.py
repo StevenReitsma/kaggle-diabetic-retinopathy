@@ -1,9 +1,11 @@
 import numpy as np
 from nolearn import BatchIterator
+import matplotlib.pyplot as plt
 from params import *
 import skimage
 from skimage import transform
 import scipy
+import cv2
 
 import util
 import time
@@ -47,6 +49,7 @@ class ParallelBatchIterator(object):
 		bs = self.batch_size
 
 		for i in xrange((n_samples + bs - 1) // bs):
+			t = time.time()
 			start_index = i * bs
 			end_index = (i+1) * bs
 
@@ -71,6 +74,8 @@ class ParallelBatchIterator(object):
 
 			# Transform the batch (augmentation, normalization, etc.)
 			X_batch, y_batch = self.transform(X_batch, y_batch)
+
+			#print "Produce time: %.2f ms" % ((time.time() - t)*1000)
 
 			yield X_batch, y_batch
 
@@ -125,9 +130,9 @@ class AugmentingParallelBatchIterator(ParallelBatchIterator):
 		super(AugmentingParallelBatchIterator, self).__init__(keys, y_all, batch_size, std, mean)
 
 		# Set center point
-		center_shift = np.array((PIXELS, PIXELS)) / 2. - 0.5
-		self.tform_center = transform.SimilarityTransform(translation=-center_shift)
-		self.tform_uncenter = transform.SimilarityTransform(translation=center_shift)
+		self.center_shift = np.array((PIXELS, PIXELS)) / 2. - 0.5
+		self.tform_center = transform.SimilarityTransform(translation=-self.center_shift)
+		self.tform_uncenter = transform.SimilarityTransform(translation=self.center_shift)
 
 		# Identities
 		self.tform_identity = skimage.transform.AffineTransform()
@@ -143,30 +148,22 @@ class AugmentingParallelBatchIterator(ParallelBatchIterator):
 		shift_x = np.random.uniform(*AUGMENTATION_PARAMS['translation_range'])
 		shift_y = np.random.uniform(*AUGMENTATION_PARAMS['translation_range'])
 
-		# Rotation, shear, zoom shift
-		translation = (shift_x, shift_y)
+		# Rotation, zoom
 		rotation = np.random.uniform(*AUGMENTATION_PARAMS['rotation_range'])
-		shear = np.random.uniform(*AUGMENTATION_PARAMS['shear_range'])
 		log_zoom_range = [np.log(z) for z in AUGMENTATION_PARAMS['zoom_range']]
 		zoom = np.exp(np.random.uniform(*log_zoom_range))
-
-		# Whether to do flipping
-		# Flipping is equivalent to shearing 180 degrees and rotating 180 degrees
-		if AUGMENTATION_PARAMS['do_flip'] and random_flip > 0:
-			shear += 180
-			rotation += 180
-
-		# Create augmentation transformer
-		tform_augment = transform.AffineTransform(scale=(1/zoom, 1/zoom), rotation=np.deg2rad(rotation), shear=np.deg2rad(shear), translation=translation)
-		tform_augment = self.tform_center + tform_augment + self.tform_uncenter
-
-		def fast_warp(img, tf, output_shape=(PIXELS, PIXELS), mode='nearest'):
-			return skimage.transform._warps_cy._warp_fast(img, tf.params, output_shape=output_shape, mode=mode)
+		
+		# Define affine matrix
+		M = cv2.getRotationMatrix2D((self.center_shift[0], self.center_shift[1]), rotation, zoom)
+		M[0, 2] += shift_x
+		M[1, 2] += shift_y
 
 		# For every image, perform the actual warp, per channel
 		for i in range(Xb.shape[0]):
-			for c in range(Xb.shape[1]):
-				Xbb[i, c, :, :] = fast_warp(Xb[i][c], self.tform_ds + tform_augment + self.tform_identity).astype('float32')
+			Xbb[i] = cv2.warpAffine(Xb[i].transpose(1, 2, 0), M, (PIXELS, PIXELS)).transpose(2, 0, 1)
+
+			if random_flip == 1:
+				Xbb[i] = cv2.flip(Xbb[i].transpose(1, 2, 0), 0).transpose(2, 0, 1)
 
 		# Do normalization in super-method
 		Xbb, yb = super(AugmentingParallelBatchIterator, self).transform(Xbb, yb)

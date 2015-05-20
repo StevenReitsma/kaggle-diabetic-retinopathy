@@ -1,9 +1,6 @@
 import numpy as np
 from nolearn import BatchIterator
-import matplotlib.pyplot as plt
 from params import *
-import skimage
-from skimage import transform
 import scipy
 import cv2
 

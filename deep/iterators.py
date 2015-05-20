@@ -154,6 +154,7 @@ class AugmentingParallelBatchIterator(ParallelBatchIterator):
 		zoom = np.exp(np.random.uniform(*log_zoom_range))
 		
 		# Define affine matrix
+		# TODO: Should be able to incorporate flips directly instead of through an extra call
 		M = cv2.getRotationMatrix2D((self.center_shift[0], self.center_shift[1]), rotation, zoom)
 		M[0, 2] += shift_x
 		M[1, 2] += shift_y

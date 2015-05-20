@@ -234,9 +234,10 @@ class NeuralNet(BaseEstimator):
             # XXX breaking the Lasagne interface a little:
             obj.layers = layers
 
-        loss_train = obj.get_loss(X_batch, y_batch)
-        loss_eval = obj.get_loss(X_batch, y_batch, deterministic=True)
-        predict_proba = output_layer.get_output(X_batch, deterministic=True)
+        # LINES BELOW HAVE BEEN EDITED TO ENABLE MULTI-INPUT-LEARNING
+        loss_train = obj.get_loss({self.layers_['input']: X_batch}, y_batch)
+        loss_eval = obj.get_loss({self.layers_['input']: X_batch}, y_batch, deterministic=True)
+        predict_proba = output_layer.get_output({self.layers_['input']: X_batch}, deterministic=True)
         if not self.regression:
             predict = predict_proba.argmax(axis=1)
             accuracy = T.mean(T.eq(predict, y_batch))

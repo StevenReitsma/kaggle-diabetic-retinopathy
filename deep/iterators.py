@@ -65,36 +65,34 @@ class ParallelBatchIterator(object):
 				y_batch = self.y_all.loc[key_batch]['level']
 				y_batch = y_batch[:, np.newaxis].astype(np.float32)
 
-			#print "Reading start ", time.time()
+			# Read all images in the batch
 			for i, key in enumerate(key_batch):
-				
 				X_batch[i] = scipy.misc.imread(IMAGE_SOURCE + "/" + subdir + "/" + key + ".jpeg").transpose(2, 0, 1)
 
-			#print "Transform start ", time.time()
+			# Transform the batch (augmentation, normalization, etc.)
+			X_batch, y_batch = self.transform(X_batch, y_batch)
 
-			yield self.transform(X_batch, y_batch)
-
-			#print "Transform end ", time.time()
+			yield X_batch, y_batch
 
 	def __iter__(self):
 		import Queue
 		queue = Queue.Queue(maxsize=16)
 		sentinel = object()  # guaranteed unique reference
 
-		# define producer (putting items into queue)
+		# Define producer (putting items into queue)
 		def producer():
 			for item in self.gen():
 				queue.put(item)
 				#print ">>>>> P:\t%i" % (queue.qsize())
 			queue.put(sentinel)
 
-		# start producer (in a background thread)
+		# Start producer (in a background thread)
 		import threading
 		thread = threading.Thread(target=producer)
 		thread.daemon = True
 		thread.start()
 
-		# run as consumer (read items from queue, in current thread)
+		# Run as consumer (read items from queue, in current thread)
 		item = queue.get()
 		while item is not sentinel:
 			yield item

@@ -131,12 +131,6 @@ class AugmentingParallelBatchIterator(ParallelBatchIterator):
 
 		# Set center point
 		self.center_shift = np.array((PIXELS, PIXELS)) / 2. - 0.5
-		self.tform_center = transform.SimilarityTransform(translation=-self.center_shift)
-		self.tform_uncenter = transform.SimilarityTransform(translation=self.center_shift)
-
-		# Identities
-		self.tform_identity = skimage.transform.AffineTransform()
-		self.tform_ds = skimage.transform.AffineTransform()
 
 	def transform(self, Xb, yb):
 		Xbb = np.zeros((Xb.shape[0], Xb.shape[1], Xb.shape[2], Xb.shape[3]), dtype=np.float32)

@@ -1,7 +1,7 @@
 # Custom
 data/
 models/
-deep/kappa*.png
+deep/plots/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

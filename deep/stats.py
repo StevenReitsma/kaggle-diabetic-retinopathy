@@ -17,5 +17,5 @@ class Stat(object):
 		ax.set_xlabel("Epoch")
 		ax.set_ylabel("Kappa")
 
-		plt.savefig('kappa' + str(int(self.ts)) + '.png')
+		plt.savefig('plots/kappa' + str(int(self.ts)) + '.png')
 		plt.close("all")

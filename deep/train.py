@@ -10,6 +10,7 @@ from early_stopping import EarlyStopping
 from imageio import ImageIO
 from skll.metrics import kappa
 import stats
+from modelsaver import ModelSaver
 
 # Import cuDNN if using GPU
 if USE_GPU:
@@ -93,15 +94,23 @@ def fit():
         batch_iterator_test=test_iterator,
         on_epoch_finished=[
             AdjustVariable('update_learning_rate', start=START_LEARNING_RATE),
-            EarlyStopping(patience=50),
-            stats.Stat()
+            EarlyStopping(patience=100),
+            stats.Stat(),
+            ModelSaver(output="models/model")
         ],
         max_epochs=500,
         verbose=1,
         eval_size=0.1,
     )
 
+    # TEMP
+    net.load_weights_from("models/model_best")
+    
     net.fit(X, y)
+
+    # Load best weights
+    joblib.dump(net, "models/joblib")
+    net.load_weights_from("models/model_best")
 
     if REGRESSION:
     	hist, _ = np.histogram(np.minimum(4, np.maximum(0, np.round(net.predict_proba(X)))), bins=5)

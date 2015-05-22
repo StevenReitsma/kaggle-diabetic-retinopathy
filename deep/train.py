@@ -42,7 +42,11 @@ def fit():
     mean, std = io.load_mean_std()
     keys = y.index.values
 
-    train_iterator = AugmentingParallelBatchIterator(keys, BATCH_SIZE, std, mean, y_all = y)
+    if AUGMENT:
+        train_iterator = AugmentingParallelBatchIterator(keys, BATCH_SIZE, std, mean, y_all = y)
+    else:
+        train_iterator = ParallelBatchIterator(keys, BATCH_SIZE, std, mean, y_all = y)
+        
     test_iterator = ParallelBatchIterator(keys, BATCH_SIZE, std, mean, y_all = y)
 
     if REGRESSION:

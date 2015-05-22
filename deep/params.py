@@ -11,6 +11,7 @@ CHANNELS = 3
 REGRESSION = True
 
 SUBSET = 1024
+AUGMENT = False
 
 AUGMENTATION_PARAMS = {
 			'zoom_range': (1.0, 1.0),

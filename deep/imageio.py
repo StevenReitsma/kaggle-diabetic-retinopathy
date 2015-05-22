@@ -1,13 +1,8 @@
 import numpy as np
-import pandas as pd
 from skimage.io import imread
 from params import *
 import glob
 import os
-import scipy
-
-import leveldb
-import util
 
 
 class ImageIO():

@@ -234,9 +234,10 @@ class NeuralNet(BaseEstimator):
             # XXX breaking the Lasagne interface a little:
             obj.layers = layers
 
-        loss_train = obj.get_loss(X_batch, y_batch)
-        loss_eval = obj.get_loss(X_batch, y_batch, deterministic=True)
-        predict_proba = output_layer.get_output(X_batch, deterministic=True)
+        # LINES BELOW HAVE BEEN EDITED TO ENABLE MULTI-INPUT-LEARNING
+        loss_train = obj.get_loss({self.layers_['input']: X_batch}, y_batch)
+        loss_eval = obj.get_loss({self.layers_['input']: X_batch}, y_batch, deterministic=True)
+        predict_proba = output_layer.get_output({self.layers_['input']: X_batch}, deterministic=True)
         if not self.regression:
             predict = predict_proba.argmax(axis=1)
             accuracy = T.mean(T.eq(predict, y_batch))
@@ -361,7 +362,6 @@ class NeuralNet(BaseEstimator):
                 ('valid_best', avg_valid_loss if best_valid else None),
                 ('train/val', avg_train_loss / avg_valid_loss),
                 ('valid_accuracy', avg_valid_accuracy),
-                ('custom_score', avg_custom_score)
                 ])
             headers = {
                 'epoch': 'epoch', 'train_loss': 'train loss',
@@ -394,7 +394,7 @@ class NeuralNet(BaseEstimator):
 
     def predict_proba(self, X):
         probas = []
-        for Xb, yb in self.batch_iterator_test(X):
+        for Xb, yb in self.batch_iterator_predict(X):
             probas.append(self.predict_iter_(Xb))
         return np.vstack(probas)
 

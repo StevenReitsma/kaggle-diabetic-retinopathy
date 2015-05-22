@@ -4,14 +4,13 @@ from nolearn import NeuralNet
 import theano
 from params import *
 import util
-from iterators import ScalingBatchIterator, ParallelBatchIterator
+from iterators import ParallelBatchIterator, AugmentingParallelBatchIterator
 from learning_rate import AdjustVariable
 from early_stopping import EarlyStopping
 from imageio import ImageIO
 from skll.metrics import kappa
-from iterators import DataAugmentationBatchIterator
-import redis
 import stats
+from modelsaver import ModelSaver
 
 # Import cuDNN if using GPU
 if USE_GPU:
@@ -27,21 +26,21 @@ Maxout = layers.pool.FeaturePoolLayer
 # Fix seed
 np.random.seed(42)
 
+def quadratic_kappa(true, predicted):
+    return kappa(true, predicted, weights='quadratic')
 
 def fit():
     io = ImageIO()
     # Read pandas csv labels
     y = util.load_labels()
 
-    #y = y[:1000]
-
     X = np.arange(y.shape[0])
 
     mean, std = io.load_mean_std()
     keys = y.index.values
 
-    train_iterator = ParallelBatchIterator(keys, y, BATCH_SIZE, std, mean)
-    test_iterator = ParallelBatchIterator(keys, y, BATCH_SIZE, std, mean)
+    train_iterator = AugmentingParallelBatchIterator(keys, BATCH_SIZE, std, mean, y_all = y)
+    test_iterator = ParallelBatchIterator(keys, BATCH_SIZE, std, mean, y_all = y)
 
     if REGRESSION:
         y = util.float32(y)
@@ -90,16 +89,16 @@ def fit():
 
         update_learning_rate=theano.shared(util.float32(START_LEARNING_RATE)),
         update_momentum=theano.shared(util.float32(MOMENTUM)),
-        custom_score=('weighted kappa', lambda true, predicted: kappa(
-            true, predicted, weights='quadratic')),
+        custom_score=('kappa', quadratic_kappa),
 
         regression=REGRESSION,
         batch_iterator_train=train_iterator,
         batch_iterator_test=test_iterator,
         on_epoch_finished=[
             AdjustVariable('update_learning_rate', start=START_LEARNING_RATE),
-            EarlyStopping(patience=50),
-            stats.Stat()
+            EarlyStopping(patience=100),
+            stats.Stat(),
+            ModelSaver(output="models/model")
         ],
         max_epochs=500,
         verbose=1,
@@ -107,6 +106,9 @@ def fit():
     )
 
     net.fit(X, y)
+
+    # Load best weights for histograms
+    net.load_weights_from("models/model_best")
 
     if REGRESSION:
     	hist, _ = np.histogram(np.minimum(4, np.maximum(0, np.round(net.predict_proba(X)))), bins=5)

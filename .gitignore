@@ -1,9 +1,13 @@
 # Custom
 data/
 models/
+
 *~
 *.spyder*
 *.png
+
+deep/plots/*
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

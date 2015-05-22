@@ -1,5 +1,3 @@
-import numpy as np
-#Plotflabflapflip
 import matplotlib.pyplot as plt
 import time
 
@@ -11,12 +9,13 @@ class Stat(object):
 		self.ts = time.time()
 
 	def __call__(self, nn, train_history):
-		kappa = [x['custom_score'] for x in train_history]
+		kappa = [x['kappa'] for x in train_history]
 
 		#plt.clear()
 		fig, ax = plt.subplots(1)
 		ax.plot(kappa, antialiased=True)
 		ax.set_xlabel("Epoch")
-		ax.set_ylabel("$\kappa\\alpha\pi\pi\\alpha$ (kappa)")
+		ax.set_ylabel("Kappa")
 
-		plt.savefig('kappa' + str(int(self.ts)) + '.png')
+		plt.savefig('plots/kappa' + str(int(self.ts)) + '.png')
+		plt.close("all")

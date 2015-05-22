@@ -28,13 +28,21 @@ class ScalingBatchIterator(BatchIterator):
 		return Xbb, yb
 
 class ParallelBatchIterator(object):
-	def __init__(self, keys, y_all, batch_size, std, mean):
+	"""
+	Uses a producer-consumer model to prepare batches on the CPU while training on the GPU.
+
+	If test = True, the test directory is taken to read the images and the transform method gets the
+	keys sent as the second argument instead of the y_batch.
+	"""
+
+	def __init__(self, keys, batch_size, std, mean, y_all = None, test = False):
 		self.batch_size = batch_size
 
 		self.keys = keys
 		self.mean = mean
 		self.std = std
 		self.y_all = y_all
+		self.test = test
 
 	def __call__(self, X, y=None):
 		self.X = X
@@ -46,7 +54,7 @@ class ParallelBatchIterator(object):
 		bs = self.batch_size
 
 		for i in xrange((n_samples + bs - 1) // bs):
-			t = time.time()
+			#t = time.time()
 			start_index = i * bs
 			end_index = (i+1) * bs
 
@@ -58,10 +66,11 @@ class ParallelBatchIterator(object):
 			X_batch = np.zeros((cur_batch_size, CHANNELS, PIXELS, PIXELS), dtype=np.float32)
 			y_batch = None
 
-			#subdir = "train" if self.y is not None else "test"
-			subdir = "train"
-
-			if self.y is not None:
+			if self.test:
+				subdir = "test"
+				y_batch = key_batch
+			else:
+				subdir = "train"
 				y_batch = self.y_all.loc[key_batch]['level']
 				y_batch = y_batch[:, np.newaxis].astype(np.float32)
 
@@ -123,8 +132,8 @@ class AugmentingParallelBatchIterator(ParallelBatchIterator):
 	"""
 	Randomly changes images in the batch. Behaviour can be defined in params.py.
 	"""
-	def __init__(self, keys, y_all, batch_size, std, mean):
-		super(AugmentingParallelBatchIterator, self).__init__(keys, y_all, batch_size, std, mean)
+	def __init__(self, keys, batch_size, std, mean, y_all = None):
+		super(AugmentingParallelBatchIterator, self).__init__(keys, batch_size, std, mean, y_all)
 
 		# Set center point
 		self.center_shift = np.array((PIXELS, PIXELS)) / 2. - 0.5
@@ -152,12 +161,60 @@ class AugmentingParallelBatchIterator(ParallelBatchIterator):
 
 		# For every image, perform the actual warp, per channel
 		for i in range(Xb.shape[0]):
-			Xbb[i] = cv2.warpAffine(Xb[i].transpose(1, 2, 0), M, (PIXELS, PIXELS)).transpose(2, 0, 1)
+			# Saving as a temporary variable saves us two transposes
+			im = cv2.warpAffine(Xb[i].transpose(1, 2, 0), M, (PIXELS, PIXELS))
 
 			if random_flip == 1:
-				Xbb[i] = cv2.flip(Xbb[i].transpose(1, 2, 0), 0).transpose(2, 0, 1)
+				Xbb[i] = cv2.flip(im, 0).transpose(2, 0, 1)
+			else:
+				Xbb[i] = im.transpose(2, 0, 1)
 
 		# Do normalization in super-method
 		Xbb, yb = super(AugmentingParallelBatchIterator, self).transform(Xbb, yb)
 
 		return Xbb, yb
+
+class TTABatchIterator(ParallelBatchIterator):
+	def __init__(self, keys, batch_size, std, mean):
+		super(TTABatchIterator, self).__init__(keys, batch_size, std, mean, test = True)
+
+		# Set center point
+		self.center_shift = np.array((PIXELS, PIXELS)) / 2. - 0.5
+		self.i = 0
+
+	def transform(self, Xb, yb):
+		print "Batch %i/%i" % (self.i, self.X.shape[0]/self.batch_size)
+		self.i += 1
+
+		# Create some augmented batches
+		rotations = [0, 45, 90, 135, 180, 225, 270, 315]
+		flips = [True, False]
+
+		self.ttas = len(rotations) * len(flips)
+
+		Xbb_list = []
+
+		for r in rotations:
+			for f in flips:
+				Xbb_new = np.zeros(Xb.shape, dtype=np.float32)
+
+				M = cv2.getRotationMatrix2D((self.center_shift[0], self.center_shift[1]), r, 1)
+
+				for i in range(Xb.shape[0]):
+					im = cv2.warpAffine(Xb[i].transpose(1, 2, 0), M, (PIXELS, PIXELS))
+					if f:
+						Xbb_new[i] = cv2.flip(im, 0).transpose(2, 0, 1)
+					else:
+						Xbb_new[i] = im.transpose(2, 0, 1)
+
+				# Normalize
+				Xbb_new, _ = super(TTABatchIterator, self).transform(Xbb_new, None)
+
+				# Extend if batch size too small
+				if Xbb_new.shape[0] < self.batch_size:
+					Xbb_new = np.vstack([Xbb_new, np.zeros((self.batch_size - Xbb_new.shape[0], Xbb_new.shape[1], Xbb_new.shape[2], Xbb_new.shape[3]), dtype=np.float32)])
+
+				Xbb_list.append(Xbb_new)
+
+		# yb are the keys of this batch, in order.
+		return np.vstack(Xbb_list), yb

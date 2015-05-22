@@ -394,7 +394,7 @@ class NeuralNet(BaseEstimator):
 
     def predict_proba(self, X):
         probas = []
-        for Xb, yb in self.batch_iterator_test(X):
+        for Xb, yb in self.batch_iterator_predict(X):
             probas.append(self.predict_iter_(Xb))
         return np.vstack(probas)
 

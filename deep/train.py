@@ -26,6 +26,9 @@ Maxout = layers.pool.FeaturePoolLayer
 # Fix seed
 np.random.seed(42)
 
+def quadratic_kappa(true, predicted):
+    return kappa(true, predicted, weights='quadratic')
+
 def fit():
     io = ImageIO()
     # Read pandas csv labels
@@ -36,8 +39,8 @@ def fit():
     mean, std = io.load_mean_std()
     keys = y.index.values
 
-    train_iterator = AugmentingParallelBatchIterator(keys, y, BATCH_SIZE, std, mean)
-    test_iterator = ParallelBatchIterator(keys, y, BATCH_SIZE, std, mean)
+    train_iterator = AugmentingParallelBatchIterator(keys, BATCH_SIZE, std, mean, y_all = y)
+    test_iterator = ParallelBatchIterator(keys, BATCH_SIZE, std, mean, y_all = y)
 
     if REGRESSION:
         y = util.float32(y)
@@ -86,8 +89,7 @@ def fit():
 
         update_learning_rate=theano.shared(util.float32(START_LEARNING_RATE)),
         update_momentum=theano.shared(util.float32(MOMENTUM)),
-        custom_score=('kappa', lambda true, predicted: kappa(
-            true, predicted, weights='quadratic')),
+        custom_score=('kappa', quadratic_kappa),
 
         regression=REGRESSION,
         batch_iterator_train=train_iterator,
@@ -103,13 +105,9 @@ def fit():
         eval_size=0.1,
     )
 
-    # TEMP
-    net.load_weights_from("models/model_best")
-    
     net.fit(X, y)
 
-    # Load best weights
-    joblib.dump(net, "models/joblib")
+    # Load best weights for histograms
     net.load_weights_from("models/model_best")
 
     if REGRESSION:

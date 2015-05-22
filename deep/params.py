@@ -10,12 +10,17 @@ MOMENTUM = 0.9
 CHANNELS = 3
 REGRESSION = True
 
-SUBSET = 0
-AUGMENT = False
+SUBSET = 10240
+AUGMENT = True
+COLOR_AUGMENTATION = True
+NETWORK_INPUT_TYPE = 'RGB'
 
 AUGMENTATION_PARAMS = {
 			'zoom_range': (1.0, 1.0),
 			'rotation_range': (0, 360),
 			'translation_range': (-5, 5),
-			'do_flip': True
+			'do_flip': True,
+			'hue_range': (-0.1, 0.1),
+			'saturation_range': (-0.1, 0.1),
+			'value_range': (-0.1, 0.1)
 }

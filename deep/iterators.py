@@ -44,7 +44,7 @@ class ParallelBatchIterator(object):
 		self.mean = mean
 		self.std = std
 
-		if NETWORK_INPUT_TYPE is 'HSV':
+		if NETWORK_INPUT_TYPE == 'HSV':
 			self.mean = self.mean / 255.
 			self.std = self.std / 255.
 			self.mean = cv2.cvtColor(self.mean.transpose(1, 2, 0), cv2.COLOR_RGB2HSV).transpose(2, 0, 1)
@@ -197,7 +197,7 @@ class AugmentingParallelBatchIterator(ParallelBatchIterator):
 				# Clip pixels from 0 to 1
 				im = np.clip(im, 0, 1)
 
-				if NETWORK_INPUT_TYPE is 'RGB':
+				if NETWORK_INPUT_TYPE == 'RGB':
 					# Rescale hue from 0-1 to 0-360.
 					im[:, :, 0] *= 360.
 
@@ -206,6 +206,8 @@ class AugmentingParallelBatchIterator(ParallelBatchIterator):
 
 					# Convert back to 0-255 range
 					im *= 255.
+
+					print im.max(), im.min(), im.mean()
 
 			# Back to c01
 			Xbb[i] = im.transpose(2, 0, 1)

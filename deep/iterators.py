@@ -181,7 +181,7 @@ class AugmentingParallelBatchIterator(ParallelBatchIterator):
 
 			if COLOR_AUGMENTATION:
 				# Convert image to range 0-1.
-				im = im / 255.
+				im = Xb[i] / 255.
 
 				# Convert to HSV
 				im = cv2.cvtColor(im, cv2.COLOR_RGB2HSV)
@@ -207,7 +207,7 @@ class AugmentingParallelBatchIterator(ParallelBatchIterator):
 					# Convert back to 0-255 range
 					im *= 255.
 
-					print im.max(), im.min(), im.mean()
+					
 
 			# Back to c01
 			Xbb[i] = im.transpose(2, 0, 1)

@@ -1,6 +1,9 @@
 # Custom
 data/
 models/
+*~
+*.spyder*
+*.png
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

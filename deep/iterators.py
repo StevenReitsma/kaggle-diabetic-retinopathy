@@ -189,10 +189,15 @@ class AugmentingParallelBatchIterator(ParallelBatchIterator):
 				# Rescale hue from 0-360 to 0-1.
 				im[:, :, 0] /= 360.
 
+				# Mask value == 0
+				black_indices = im[:, :, 2] == 0
+
 				# Add random hue, saturation and value
-				im[:, :, 0] = im[:, :, 0] + random_hue
+				im[:, :, 0] = (im[:, :, 0] + random_hue) % 360
 				im[:, :, 1] = im[:, :, 1] + random_saturation
 				im[:, :, 2] = im[:, :, 2] + random_value
+
+				im[black_indices, 2] = 0
 
 				# Clip pixels from 0 to 1
 				im = np.clip(im, 0, 1)
@@ -207,10 +212,10 @@ class AugmentingParallelBatchIterator(ParallelBatchIterator):
 					# Convert back to 0-255 range
 					im *= 255.
 
-					
-
 			# Back to c01
 			Xbb[i] = im.transpose(2, 0, 1)
+			#if i % 63 == 0:
+				#scipy.misc.imsave('curimg.png', np.cast['int32'](Xbb[i]).transpose(1, 2, 0))
 
 		# Do normalization in super-method
 		Xbb, yb = super(AugmentingParallelBatchIterator, self).transform(Xbb, yb)

@@ -181,7 +181,7 @@ class AugmentingParallelBatchIterator(ParallelBatchIterator):
 
 			if COLOR_AUGMENTATION:
 				# Convert image to range 0-1.
-				im = Xb[i] / 255.
+				im = im / 255.
 
 				# Convert to HSV
 				im = cv2.cvtColor(im, cv2.COLOR_RGB2HSV)

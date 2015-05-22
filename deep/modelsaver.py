@@ -1,4 +1,5 @@
 import numpy as np
+import joblib
 
 class ModelSaver(object):
 	"""
@@ -17,3 +18,4 @@ class ModelSaver(object):
 			self.best_valid = valid_loss
 			self.best_valid_epoch = epoch
 			nn.save_weights_to(self.output + "_best")
+			joblib.dump(nn, "models/joblib")

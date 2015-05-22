@@ -127,7 +127,7 @@ class ParallelBatchIterator(object):
 		#print np.max(m_hsv[0]), np.max(m_hsv[1]), np.max(m_hsv[2])
 		#quit()
 
-		Xbb = (Xbb - m_hsv)
+		Xbb = (Xbb - m_hsv) / s_hsv
 		Xbb[:, 0] /= 360.
 
 		#print Xbb[:, 0].max(), Xbb[:, 1].max(), Xbb[:, 2].max()

@@ -172,7 +172,7 @@ class AugmentingParallelBatchIterator(ParallelBatchIterator):
 
 		# For every image, perform the actual warp, per channel
 		for i in xrange(Xb.shape[0]):
-			# Saving as a temporary variable saves us two transposes
+			# Convert image to range 0-255.
 			im = Xb[i] / 255.
 			im = cv2.warpAffine(im.transpose(1, 2, 0), M, (PIXELS, PIXELS))
 
@@ -197,7 +197,13 @@ class AugmentingParallelBatchIterator(ParallelBatchIterator):
 				im = np.clip(im, 0, 1)
 
 				if NETWORK_INPUT_TYPE is 'RGB':
+					# Rescale hue from 0-1 to 0-360.
+					im[:, :, 0] *= 360.
+
+					# Convert back to RGB in 0-1 range.
 					im = cv2.cvtColor(im, cv2.COLOR_HSV2RGB)
+
+					# Convert back to 0-255 range
 					im *= 255.
 
 			# Back to c01

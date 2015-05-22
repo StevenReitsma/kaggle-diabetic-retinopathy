@@ -172,8 +172,6 @@ class AugmentingParallelBatchIterator(ParallelBatchIterator):
 
 		# For every image, perform the actual warp, per channel
 		for i in xrange(Xb.shape[0]):
-			# Convert image to range 0-255.
-			im = Xb[i] / 255.
 			im = cv2.warpAffine(im.transpose(1, 2, 0), M, (PIXELS, PIXELS))
 
 			# im is now RGB 01c
@@ -182,6 +180,9 @@ class AugmentingParallelBatchIterator(ParallelBatchIterator):
 				im = cv2.flip(im, 0)
 
 			if COLOR_AUGMENTATION:
+				# Convert image to range 0-1.
+				im = Xb[i] / 255.
+				
 				# Convert to HSV
 				im = cv2.cvtColor(im, cv2.COLOR_RGB2HSV)
 

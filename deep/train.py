@@ -34,6 +34,9 @@ def fit():
     # Read pandas csv labels
     y = util.load_labels()
 
+    if SUBSET is not 0:
+        y = y[:SUBSET]
+
     X = np.arange(y.shape[0])
 
     mean, std = io.load_mean_std()

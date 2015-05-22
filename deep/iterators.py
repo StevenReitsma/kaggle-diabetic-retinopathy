@@ -112,8 +112,26 @@ class ParallelBatchIterator(object):
 			#print "C:\t%i" % (queue.qsize())
 
 	def transform(self, Xb, yb):
+		Xbb = np.zeros(Xb.shape, dtype=np.float32)
+
+		for i, im in enumerate(Xb):
+			x = Xb[i] / 255.
+			Xbb[i] = cv2.cvtColor(x.transpose(1, 2, 0), cv2.COLOR_RGB2HSV).transpose(2, 0, 1)
+
 		# Normalize
-		Xbb = (Xb - self.mean) / self.std
+		m = self.mean / 255.
+		s = self.std / 255.
+		m_hsv = cv2.cvtColor(m.transpose(1, 2, 0), cv2.COLOR_RGB2HSV).transpose(2, 0, 1)
+		s_hsv = cv2.cvtColor(s.transpose(1, 2, 0), cv2.COLOR_RGB2HSV).transpose(2, 0, 1)
+
+		#print np.max(m_hsv[0]), np.max(m_hsv[1]), np.max(m_hsv[2])
+		#quit()
+
+		Xbb = (Xbb - m_hsv)
+		Xbb[:, 0] /= 360.
+
+		#print Xbb[:, 0].max(), Xbb[:, 1].max(), Xbb[:, 2].max()
+		#print Xbb.min(), Xbb.max()
 
 		return Xbb, yb
 
@@ -152,7 +170,7 @@ class AugmentingParallelBatchIterator(ParallelBatchIterator):
 		rotation = np.random.uniform(*AUGMENTATION_PARAMS['rotation_range'])
 		log_zoom_range = [np.log(z) for z in AUGMENTATION_PARAMS['zoom_range']]
 		zoom = np.exp(np.random.uniform(*log_zoom_range))
-		
+
 		# Define affine matrix
 		# TODO: Should be able to incorporate flips directly instead of through an extra call
 		M = cv2.getRotationMatrix2D((self.center_shift[0], self.center_shift[1]), rotation, zoom)

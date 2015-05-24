@@ -1,30 +1,38 @@
 import numpy as np
-from lasagne import layers, nonlinearities
-from nolearn import NeuralNet
-import theano
+import scoop
 from params import *
-import util
-from iterators import ParallelBatchIterator, AugmentingParallelBatchIterator
-from learning_rate import AdjustVariable
-from early_stopping import EarlyStopping
-from imageio import ImageIO
-from skll.metrics import kappa
-import stats
-from modelsaver import ModelSaver
 
-# Import cuDNN if using GPU
-if USE_GPU:
-    from lasagne.layers import dnn
-    Conv2DLayer = dnn.Conv2DDNNLayer
-    MaxPool2DLayer = dnn.MaxPool2DDNNLayer
-else:
-    Conv2DLayer = layers.Conv2DLayer
-    MaxPool2DLayer = layers.MaxPool2DLayer
 
-Maxout = layers.pool.FeaturePoolLayer
+#Necessary for scoop as Theano gets confused if approached from 4 threads
+if __name__ == '__main__':
+    from lasagne import layers, nonlinearities
+    from nolearn import NeuralNet
+    import theano
 
-# Fix seed
-np.random.seed(42)
+    import util
+    from iterators import ParallelBatchIterator, AugmentingParallelBatchIterator
+    from learning_rate import AdjustVariable
+    from early_stopping import EarlyStopping
+    from imageio import ImageIO
+    from skll.metrics import kappa
+    import stats
+    from modelsaver import ModelSaver
+
+
+
+    # Import cuDNN if using GPU
+    if USE_GPU:
+        from lasagne.layers import dnn
+        Conv2DLayer = dnn.Conv2DDNNLayer
+        MaxPool2DLayer = dnn.MaxPool2DDNNLayer
+    else:
+        Conv2DLayer = layers.Conv2DLayer
+        MaxPool2DLayer = layers.MaxPool2DLayer
+
+    Maxout = layers.pool.FeaturePoolLayer
+
+    # Fix seed
+    np.random.seed(42)
 
 def quadratic_kappa(true, predicted):
     return kappa(true, predicted, weights='quadratic')

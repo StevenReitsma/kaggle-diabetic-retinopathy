@@ -15,6 +15,8 @@ AUGMENT = True
 COLOR_AUGMENTATION = True
 NETWORK_INPUT_TYPE = 'RGB'
 
+CIRCULARIZED_MEAN_STD = True
+
 AUGMENTATION_PARAMS = {
 			'zoom_range': (1.0, 1.0),
 			'rotation_range': (0, 360),

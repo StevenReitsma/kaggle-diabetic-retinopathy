@@ -39,14 +39,14 @@ def fit():
 
     X = np.arange(y.shape[0])
 
-    mean, std = io.load_mean_std()
+    mean, std = io.load_mean_std(circularized=CIRCULARIZED_MEAN_STD)
     keys = y.index.values
 
     if AUGMENT:
         train_iterator = AugmentingParallelBatchIterator(keys, BATCH_SIZE, std, mean, y_all = y)
     else:
         train_iterator = ParallelBatchIterator(keys, BATCH_SIZE, std, mean, y_all = y)
-        
+
     test_iterator = ParallelBatchIterator(keys, BATCH_SIZE, std, mean, y_all = y)
 
     if REGRESSION:

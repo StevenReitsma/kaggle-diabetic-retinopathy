@@ -214,7 +214,7 @@ class AugmentingParallelBatchIterator(ParallelBatchIterator):
 
 			# Back to c01
 			Xbb[i] = im.transpose(2, 0, 1)
-			#if i % 63 == 0:
+			#if i % self.batch_size - 1 == 0:
 				#scipy.misc.imsave('curimg.png', np.cast['int32'](Xbb[i]).transpose(1, 2, 0))
 
 		# Do normalization in super-method

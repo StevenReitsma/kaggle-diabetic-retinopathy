@@ -1,12 +1,12 @@
 import matplotlib.pyplot as plt
-import time
+from params import *
 
 class Stat(object):
 	"""
 	Stops training when the validation loss has not decreased for `patience` epochs.
 	"""
 	def __init__(self):
-		self.ts = time.time()
+		pass
 
 	def __call__(self, nn, train_history):
 		kappa = [x['kappa'] for x in train_history]
@@ -17,5 +17,5 @@ class Stat(object):
 		ax.set_xlabel("Epoch")
 		ax.set_ylabel("Kappa")
 
-		plt.savefig('plots/kappa' + str(int(self.ts)) + '.png')
+		plt.savefig("models/" + MODEL_ID + "/kappa.png")
 		plt.close("all")

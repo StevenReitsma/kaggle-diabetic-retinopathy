@@ -7,7 +7,6 @@ from iterators import TTABatchIterator
 from params import *
 from math import *
 import argparse
-import matplotlib.pyplot as plt
 from skll.metrics import kappa
 
 # Define so that it can be pickled
@@ -19,6 +18,9 @@ def load_validation_set(model_id):
 
 def load_labels(model_id):
 	return np.load("models/" + model_id + "/y_valid.npy")
+
+def load_validation_predictions(filename):
+	return np.load(filename)
 
 def compute_validation_predictions(model, weights, validation_set):
 	model = joblib.load(model)

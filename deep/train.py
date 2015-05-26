@@ -90,7 +90,16 @@ def fit():
         max_epochs=500,
         verbose=1,
         eval_size=0.1,
+        create_validation_split=False,
     )
+
+    # It is recommended to use the same training/validation split every model for ensembling and threshold optimization
+    #
+    # To set specific training/validation split:
+    net.X_train = np.load(IMAGE_SOURCE + "/X_train.npy")
+    net.X_valid = np.load(IMAGE_SOURCE + "/X_valid.npy")
+    net.y_train = np.load(IMAGE_SOURCE + "/y_train.npy")
+    net.y_valid = np.load(IMAGE_SOURCE + "/y_valid.npy")
 
     net.fit(X, y)
 
@@ -117,9 +126,10 @@ if __name__ == "__main__":
     from skll.metrics import kappa
     import stats
     from modelsaver import ModelSaver
+    import os
 
     # Import cuDNN if using GPU
-    if theano.config.device == 'gpu':
+    if 'gpu' in theano.config.device:
         from lasagne.layers import dnn
         Conv2DLayer = dnn.Conv2DDNNLayer
         MaxPool2DLayer = dnn.MaxPool2DDNNLayer

@@ -11,6 +11,7 @@ from imageio import ImageIO
 from skll.metrics import kappa
 import stats
 from modelsaver import ModelSaver
+import os
 
 # Import cuDNN if using GPU
 if USE_GPU:
@@ -30,7 +31,12 @@ def quadratic_kappa(true, predicted):
     return kappa(true, predicted, weights='quadratic')
 
 def fit():
+    # Create working directory
+    if not os.path.exists("models/" + MODEL_ID):
+        os.makedirs("models/" + MODEL_ID)
+
     io = ImageIO()
+
     # Read pandas csv labels
     y = util.load_labels()
 
@@ -105,7 +111,7 @@ def fit():
             AdjustVariable('update_learning_rate', start=START_LEARNING_RATE),
             EarlyStopping(patience=100),
             stats.Stat(),
-            ModelSaver(output="models/model")
+            ModelSaver()
         ],
         max_epochs=500,
         verbose=1,
@@ -115,7 +121,7 @@ def fit():
     net.fit(X, y)
 
     # Load best weights for histograms
-    net.load_weights_from("models/model_best")
+    net.load_weights_from("models/" + MODEL_ID + "/best_weights")
 
     if REGRESSION:
     	hist, _ = np.histogram(np.minimum(4, np.maximum(0, np.round(net.predict_proba(X)))), bins=5)

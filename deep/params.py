@@ -1,9 +1,11 @@
+import time
+
 IMAGE_SOURCE = "../data/processed"
 
 PIXELS = 256
 USE_GPU = True
 
-BATCH_SIZE = 64
+BATCH_SIZE = 32
 START_LEARNING_RATE = 0.01
 MOMENTUM = 0.9
 
@@ -12,8 +14,10 @@ REGRESSION = True
 
 SUBSET = 0
 AUGMENT = True
-COLOR_AUGMENTATION = False
+COLOR_AUGMENTATION = True
 NETWORK_INPUT_TYPE = 'RGB'
+
+MODEL_ID = str(int(time.time()))
 
 AUGMENTATION_PARAMS = {
 			'zoom_range': (1.0, 1.0),

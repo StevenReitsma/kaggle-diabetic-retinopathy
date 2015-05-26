@@ -69,7 +69,7 @@ def optimize_thresholds(validation_predictions, true_labels, bins):
 
 	# Use basinhopping because we're dealing with a highly non-continuous function
 	print "Starting optimization of thresholds..."
-	out = scipy.optimize.basinhopping(f, w_init, minimizer_kwargs = {"options": {"disp": True}}, stepsize = 0.1, T = 0.01, niter=10000, niter_success = 2500, )
+	out = scipy.optimize.basinhopping(f, w_init, minimizer_kwargs = {"options": {"disp": True}}, stepsize = 0.1, T = 0.01, niter=10000, niter_success = 2500)
 
 	return out, initial
 

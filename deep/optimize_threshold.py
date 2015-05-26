@@ -75,22 +75,23 @@ def optimize_thresholds(validation_predictions, true_labels, bins):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description='Optimize thresholds for a regression problem.')
-	parser.add_argument('--subset', dest='subset', action='store_true', help = 'whether to run the optimizer on a subset of the validation set')
-	parser.add_argument('--fromfile', dest='fromfile', action='store_true', help = 'whether to read the predictions from a file. if used, the model_id argument becomes the path name')
+	parser.add_argument('--subset', dest='subset', action='store_true', help = 'whether to run the optimizer on a subset of the validation set. only works if --fromfile is not set.')
+	parser.add_argument('--ensemble', dest='ensemble', action='store_true', help = 'whether to read the predictions from an ensemble. if used, the model_id argument becomes the ensemble_id')
 	parser.add_argument('model_id', metavar='model_id', type=str, help = 'timestamp ID for the model to optimize')
 
 	args = parser.parse_args()
 
-	validation_set = load_validation_set(args.model_id)
 	true_labels = load_labels(args.model_id)
 
-	if args.subset:
-		validation_set = validation_set[:128]
-		true_labels = true_labels[:128]
-
-	if args.fromfile:
-		validation_predictions = load_validation_predictions(args.model_id)
+	if args.ensemble:
+		validation_predictions = load_validation_predictions("models/ensemble_" + args.model_id + "/raw_ensemble_predictions_validation.npy")
 	else:
+		validation_set = load_validation_set(args.model_id)
+
+		if args.subset:
+			validation_set = validation_set[:128]
+			true_labels = true_labels[:128]
+
 		validation_predictions = compute_validation_predictions(model = "models/" + args.model_id + "/model", weights = "models/" + args.model_id + "/best_weights", validation_set = validation_set)
 	
 	thresholds, initial = optimize_thresholds(validation_predictions, true_labels, bins = 5)
@@ -100,6 +101,9 @@ if __name__ == "__main__":
 	initial = -np.log10(initial)
 	new_kappa = -np.log10(thresholds.fun)
 
-	np.save("models/" + args.model_id + "/optimal_thresholds", thresholds.x)
+	if args.ensemble:
+		np.save("models/ensemble_" + args.model_id + "/optimal_thresholds", thresholds.x)
+	else:
+		np.save("models/" + args.model_id + "/optimal_thresholds", thresholds.x)
 
 	print "Initial kappa %.5f. Optimized kappa: %.5f. Delta: %.5f" % (initial, new_kappa, new_kappa - initial)

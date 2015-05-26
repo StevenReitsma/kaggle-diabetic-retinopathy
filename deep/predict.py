@@ -24,22 +24,29 @@ def weighted_round(predictions, W):
 
 	return preds
 
-def predict(model_id, raw):
+def predict(model_id, raw, validation):
 	model = joblib.load("models/" + model_id + "/model")
 	model.load_weights_from("models/" + model_id + "/best_weights")
 
 	io = ImageIO()
 	mean, std = io.load_mean_std()
 
-	y = util.load_sample_submission()
+	if validation:
+		y = util.load_labels()
+	else:
+		y = util.load_sample_submission()
 
 	keys = y.index.values
 
 	model.batch_iterator_predict = TTABatchIterator(keys, BATCH_SIZE, std, mean)
 	print "TTAs per image: %i, augmented batch size: %i" % (model.batch_iterator_predict.ttas, model.batch_iterator_predict.ttas * BATCH_SIZE)
 
-	X_test = np.arange(y.shape[0])
-	padded_batches = ceil(y.shape[0]/float(BATCH_SIZE))
+	if validation:
+		X_test = np.load(IMAGE_SOURCE + "/X_valid.npy")
+	else:
+		X_test = np.arange(y.shape[0])
+
+	padded_batches = ceil(X_test.shape[0]/float(BATCH_SIZE))
 
 	pred = model.predict_proba(X_test)
 	pred = pred.reshape(padded_batches, model.batch_iterator_predict.ttas, BATCH_SIZE)
@@ -47,14 +54,20 @@ def predict(model_id, raw):
 	pred = pred.reshape(padded_batches * BATCH_SIZE)
 
 	# Remove padded lines
-	pred = pred[:y.shape[0]]
+	pred = pred[:X_test.shape[0]]
 
 	# Save unrounded
 	y.loc[keys] = pred[:, np.newaxis] # add axis for pd compatability
-	y.to_csv("models/" + model_id + "/raw_predictions.csv")
-	print "Saved raw predictions. to models/" + model_id + "/raw_predictions.csv"
 
-	if not raw:
+	if validation:
+		filename = "models/" + model_id + "/raw_predictions_validation.csv"
+	else:
+		filename = "models/" + model_id + "/raw_predictions.csv"
+
+	y.to_csv(filename)
+	print "Saved raw predictions to " + filename
+
+	if not raw and not validation:
 		W = np.load("models/" + model_id + "/optimal_thresholds.npy")
 
 		pred = weighted_round(pred, W)
@@ -76,9 +89,10 @@ def predict(model_id, raw):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description='Predict using optimized thresholds and write to file.')
-	parser.add_argument('--raw', dest='subset', action='store_true', help = 'ONLY store raw predictions, not rounded')
+	parser.add_argument('--raw', dest='raw', action='store_true', help = 'ONLY store raw predictions, not rounded')
+	parser.add_argument('--validation', dest='validation', action='store_true', help = 'create predictions for validation set, not for test set. automatically sets --raw as well.')
 	parser.add_argument('model_id', metavar='model_id', type=str, help = 'timestamp ID for the model to optimize')
 
 	args = parser.parse_args()
 
-	predict(args.model_id, args.raw)
+	predict(args.model_id, args.raw, args.validation)

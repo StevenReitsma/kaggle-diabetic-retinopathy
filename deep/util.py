@@ -38,10 +38,16 @@ def hsv_augment(im, hue, saturation, value):
 	# Rescale hue from 0-360 to 0-1.
 	im[:, :, 0] /= 360.
 
+    # Mask value == 0
+	black_indices = im[:, :, 2] == 0
+
 	# Add random hue, saturation and value
-	im[:, :, 0] = im[:, :, 0] + hue
+	im[:, :, 0] = (im[:, :, 0] + hue) % 360
 	im[:, :, 1] = im[:, :, 1] + saturation
 	im[:, :, 2] = im[:, :, 2] + value
+
+	# Pixels that were black stay black
+	im[black_indices, 2] = 0
 
 	# Clip pixels from 0 to 1
 	im = np.clip(im, 0, 1)

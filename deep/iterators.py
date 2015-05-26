@@ -35,7 +35,7 @@ class ParallelBatchIterator(object):
 	keys sent as the second argument instead of the y_batch.
 	"""
 
-	def __init__(self, keys, batch_size, std, mean, y_all = None, test = False):
+	def __init__(self, keys, batch_size, std, mean, y_all = None, test = False, cv = False):
 		self.batch_size = batch_size
 
 		self.keys = keys
@@ -43,6 +43,7 @@ class ParallelBatchIterator(object):
 		self.test = test
 		self.mean = mean
 		self.std = std
+		self.cv = cv
 
 		if NETWORK_INPUT_TYPE == 'HSV':
 			self.mean = self.mean / 255.
@@ -79,6 +80,9 @@ class ParallelBatchIterator(object):
 				subdir = "train"
 				y_batch = self.y_all.loc[key_batch]['level']
 				y_batch = y_batch[:, np.newaxis].astype(np.float32)
+
+			if self.cv:
+				subdir = "train"
 
 			# Read all images in the batch
 			for i, key in enumerate(key_batch):
@@ -180,34 +184,7 @@ class AugmentingParallelBatchIterator(ParallelBatchIterator):
 				im = cv2.flip(im, 0)
 
 			if COLOR_AUGMENTATION:
-				# Convert image to range 0-1.
-				im = im / 255.
-
-				# Convert to HSV
-				im = cv2.cvtColor(im, cv2.COLOR_RGB2HSV)
-
-				# Rescale hue from 0-360 to 0-1.
-				im[:, :, 0] /= 360.
-
-				# Add random hue, saturation and value
-				im[:, :, 0] = im[:, :, 0] + random_hue
-				im[:, :, 1] = im[:, :, 1] + random_saturation
-				im[:, :, 2] = im[:, :, 2] + random_value
-
-				# Clip pixels from 0 to 1
-				im = np.clip(im, 0, 1)
-
-				if NETWORK_INPUT_TYPE == 'RGB':
-					# Rescale hue from 0-1 to 0-360.
-					im[:, :, 0] *= 360.
-
-					# Convert back to RGB in 0-1 range.
-					im = cv2.cvtColor(im, cv2.COLOR_HSV2RGB)
-
-					# Convert back to 0-255 range
-					im *= 255.
-
-					
+				im = util.hsv_augment(im, random_hue, random_saturation, random_value)
 
 			# Back to c01
 			Xbb[i] = im.transpose(2, 0, 1)
@@ -218,46 +195,50 @@ class AugmentingParallelBatchIterator(ParallelBatchIterator):
 		return Xbb, yb
 
 class TTABatchIterator(ParallelBatchIterator):
-	def __init__(self, keys, batch_size, std, mean):
-		super(TTABatchIterator, self).__init__(keys, batch_size, std, mean, test = True)
+	def __init__(self, keys, batch_size, std, mean, cv = False):
+		super(TTABatchIterator, self).__init__(keys, batch_size, std, mean, test = True, cv = cv)
 
 		# Set center point
 		self.center_shift = np.array((PIXELS, PIXELS)) / 2. - 0.5
 		self.i = 0
 
+		self.rotations = [0, 45, 90, 135, 180, 225, 270, 315]
+		self.flips = [True, False]
+		self.hue = [0]
+		self.saturation = [0]
+
+		self.ttas = len(self.rotations) * len(self.flips) * len(self.hue) * len(self.saturation)
+
 	def transform(self, Xb, yb):
 		print "Batch %i/%i" % (self.i, self.X.shape[0]/self.batch_size)
 		self.i += 1
 
-		# Create some augmented batches
-		rotations = [0, 45, 90, 135, 180, 225, 270, 315]
-		flips = [True, False]
-
-		self.ttas = len(rotations) * len(flips)
-
 		Xbb_list = []
 
-		for r in rotations:
-			for f in flips:
-				Xbb_new = np.zeros(Xb.shape, dtype=np.float32)
+		for h in self.hue:
+			for s in self.saturation:
+				for r in self.rotations:
+					for f in self.flips:
+						Xbb_new = np.zeros(Xb.shape, dtype=np.float32)
 
-				M = cv2.getRotationMatrix2D((self.center_shift[0], self.center_shift[1]), r, 1)
+						M = cv2.getRotationMatrix2D((self.center_shift[0], self.center_shift[1]), r, 1)
 
-				for i in range(Xb.shape[0]):
-					im = cv2.warpAffine(Xb[i].transpose(1, 2, 0), M, (PIXELS, PIXELS))
-					if f:
-						Xbb_new[i] = cv2.flip(im, 0).transpose(2, 0, 1)
-					else:
-						Xbb_new[i] = im.transpose(2, 0, 1)
+						for i in range(Xb.shape[0]):
+							im = cv2.warpAffine(Xb[i].transpose(1, 2, 0), M, (PIXELS, PIXELS))
 
-				# Normalize
-				Xbb_new, _ = super(TTABatchIterator, self).transform(Xbb_new, None)
+							if f:
+								im = cv2.flip(im, 0)
 
-				# Extend if batch size too small
-				if Xbb_new.shape[0] < self.batch_size:
-					Xbb_new = np.vstack([Xbb_new, np.zeros((self.batch_size - Xbb_new.shape[0], Xbb_new.shape[1], Xbb_new.shape[2], Xbb_new.shape[3]), dtype=np.float32)])
+							Xbb_new[i] = util.hsv_augment(im, h, s, 0).transpose(2, 0, 1)
 
-				Xbb_list.append(Xbb_new)
+						# Normalize
+						Xbb_new, _ = super(TTABatchIterator, self).transform(Xbb_new, None)
+
+						# Extend if batch size too small
+						if Xbb_new.shape[0] < self.batch_size:
+							Xbb_new = np.vstack([Xbb_new, np.zeros((self.batch_size - Xbb_new.shape[0], Xbb_new.shape[1], Xbb_new.shape[2], Xbb_new.shape[3]), dtype=np.float32)])
+
+						Xbb_list.append(Xbb_new)
 
 		# yb are the keys of this batch, in order.
 		return np.vstack(Xbb_list), yb

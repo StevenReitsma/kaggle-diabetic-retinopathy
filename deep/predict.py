@@ -24,12 +24,9 @@ def weighted_round(predictions, W):
 
 	return preds
 
-def predict(model_id):
+def predict(model_id, raw):
 	model = joblib.load("models/" + model_id + "/model")
-	#model.load_weights_from("models/" + model_id + "/best_weights")
-	model.load_weights_from("old_files/weights/weights_augm_rot_transl_hsv")
-
-	W = np.load("models/" + model_id + "/optimal_thresholds.npy")
+	model.load_weights_from("models/" + model_id + "/best_weights")
 
 	io = ImageIO()
 	mean, std = io.load_mean_std()
@@ -55,28 +52,33 @@ def predict(model_id):
 	# Save unrounded
 	y.loc[keys] = pred[:, np.newaxis] # add axis for pd compatability
 	y.to_csv("models/" + model_id + "/raw_predictions.csv")
+	print "Saved raw predictions. to models/" + model_id + "/raw_predictions.csv"
 
-	pred = weighted_round(pred, W)
+	if not raw:
+		W = np.load("models/" + model_id + "/optimal_thresholds.npy")
 
-	pred = pred[:, np.newaxis] # add axis for pd compatability
+		pred = weighted_round(pred, W)
 
-	hist, _ = np.histogram(pred, bins=5)
-	print "Distribution over class predictions on test set: ", hist / float(y.shape[0])
+		pred = pred[:, np.newaxis] # add axis for pd compatability
 
-	y.loc[keys] = pred
+		hist, _ = np.histogram(pred, bins=5)
+		print "Distribution over class predictions on test set: ", hist / float(y.shape[0])
 
-	y.to_csv("models/" + model_id + "/submission.csv")
+		y.loc[keys] = pred
 
-	print "Gzipping..."
+		y.to_csv("models/" + model_id + "/submission.csv")
 
-	call("gzip -c models/" + model_id + "/submission.csv > models/" + model_id + "/submission.csv.gz", shell=True)
+		print "Gzipping..."
 
-	print "Done! File saved to models/" + model_id + "/submission.csv.gz"
+		call("gzip -c models/" + model_id + "/submission.csv > models/" + model_id + "/submission.csv.gz", shell=True)
+
+		print "Done! File saved to models/" + model_id + "/submission.csv.gz"
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description='Predict using optimized thresholds and write to file.')
+	parser.add_argument('--raw', dest='subset', action='store_true', help = 'ONLY store raw predictions, not rounded')
 	parser.add_argument('model_id', metavar='model_id', type=str, help = 'timestamp ID for the model to optimize')
 
 	args = parser.parse_args()
 
-	predict(args.model_id)
+	predict(args.model_id, args.raw)

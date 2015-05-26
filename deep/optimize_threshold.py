@@ -48,7 +48,6 @@ def compute_validation_predictions(model, weights, validation_set):
 
 	return pred
 
-
 def optimize_thresholds(validation_predictions, true_labels, bins):
 	def f(W):
 		dim = validation_predictions.reshape((validation_predictions.shape[0], 1))
@@ -70,7 +69,6 @@ def optimize_thresholds(validation_predictions, true_labels, bins):
 	initial = f(w_init)
 
 	# Use basinhopping because we're dealing with a highly non-continuous function
-	print "Starting optimization of thresholds..."
 	out = scipy.optimize.basinhopping(f, w_init, minimizer_kwargs = {"options": {"disp": True}}, stepsize = 0.1, T = 0.01, niter=10000, niter_success = 2500)
 
 	return out, initial
@@ -78,6 +76,7 @@ def optimize_thresholds(validation_predictions, true_labels, bins):
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description='Optimize thresholds for a regression problem.')
 	parser.add_argument('--subset', dest='subset', action='store_true', help = 'whether to run the optimizer on a subset of the validation set')
+	parser.add_argument('--fromfile', dest='fromfile', action='store_true', help = 'whether to read the predictions from a file. if used, the model_id argument becomes the path name')
 	parser.add_argument('model_id', metavar='model_id', type=str, help = 'timestamp ID for the model to optimize')
 
 	args = parser.parse_args()
@@ -89,7 +88,10 @@ if __name__ == "__main__":
 		validation_set = validation_set[:128]
 		true_labels = true_labels[:128]
 
-	validation_predictions = compute_validation_predictions(model = "models/" + args.model_id + "/model", weights = "old_files/weights/weights_augm_rot_transl_hsv", validation_set = validation_set)
+	if args.fromfile:
+		validation_predictions = load_validation_predictions(args.model_id)
+	else:
+		validation_predictions = compute_validation_predictions(model = "models/" + args.model_id + "/model", weights = "models/" + args.model_id + "/best_weights", validation_set = validation_set)
 	
 	thresholds, initial = optimize_thresholds(validation_predictions, true_labels, bins = 5)
 

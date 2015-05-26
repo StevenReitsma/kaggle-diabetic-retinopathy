@@ -89,7 +89,11 @@ def fit():
         ],
         max_epochs=500,
         verbose=1,
+
+        # Only relevant when create_validation_split = True
         eval_size=0.1,
+
+        # Need to specify splits manually like indicated below!
         create_validation_split=False,
     )
 

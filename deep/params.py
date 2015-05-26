@@ -3,7 +3,6 @@ import time
 IMAGE_SOURCE = "../data/processed"
 
 PIXELS = 256
-USE_GPU = True
 
 BATCH_SIZE = 32
 START_LEARNING_RATE = 0.01
@@ -18,6 +17,8 @@ COLOR_AUGMENTATION = True
 NETWORK_INPUT_TYPE = 'RGB'
 
 MODEL_ID = str(int(time.time()))
+CIRCULARIZED_MEAN_STD = True
+CONCURRENT_AUGMENTATION = False
 
 AUGMENTATION_PARAMS = {
 			'zoom_range': (1.0, 1.0),

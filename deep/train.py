@@ -1,31 +1,5 @@
 import numpy as np
-from lasagne import layers, nonlinearities
-from nolearn import NeuralNet
-import theano
 from params import *
-import util
-from iterators import ParallelBatchIterator, AugmentingParallelBatchIterator
-from learning_rate import AdjustVariable
-from early_stopping import EarlyStopping
-from imageio import ImageIO
-from skll.metrics import kappa
-import stats
-from modelsaver import ModelSaver
-import os
-
-# Import cuDNN if using GPU
-if USE_GPU:
-    from lasagne.layers import dnn
-    Conv2DLayer = dnn.Conv2DDNNLayer
-    MaxPool2DLayer = dnn.MaxPool2DDNNLayer
-else:
-    Conv2DLayer = layers.Conv2DLayer
-    MaxPool2DLayer = layers.MaxPool2DLayer
-
-Maxout = layers.pool.FeaturePoolLayer
-
-# Fix seed
-np.random.seed(42)
 
 def quadratic_kappa(true, predicted):
     return kappa(true, predicted, weights='quadratic')
@@ -45,14 +19,14 @@ def fit():
 
     X = np.arange(y.shape[0])
 
-    mean, std = io.load_mean_std()
+    mean, std = io.load_mean_std(circularized=CIRCULARIZED_MEAN_STD)
     keys = y.index.values
 
     if AUGMENT:
         train_iterator = AugmentingParallelBatchIterator(keys, BATCH_SIZE, std, mean, y_all = y)
     else:
         train_iterator = ParallelBatchIterator(keys, BATCH_SIZE, std, mean, y_all = y)
-        
+
     test_iterator = ParallelBatchIterator(keys, BATCH_SIZE, std, mean, y_all = y)
 
     if REGRESSION:
@@ -129,5 +103,34 @@ def fit():
     	print "Distribution over class predictions on training set:", hist / float(y.shape[0])
     	print "True distribution: ",  true / float(y.shape[0])
 
+# Imports are necessary for scoop as Theano gets confused if approached from 4 threads
 if __name__ == "__main__":
+    from lasagne import layers, nonlinearities
+    from nolearn import NeuralNet
+    import theano
+
+    import util
+    from iterators import ParallelBatchIterator, AugmentingParallelBatchIterator
+    from learning_rate import AdjustVariable
+    from early_stopping import EarlyStopping
+    from imageio import ImageIO
+    from skll.metrics import kappa
+    import stats
+    from modelsaver import ModelSaver
+
+    # Import cuDNN if using GPU
+    if theano.config.device == 'gpu':
+        from lasagne.layers import dnn
+        Conv2DLayer = dnn.Conv2DDNNLayer
+        MaxPool2DLayer = dnn.MaxPool2DDNNLayer
+    else:
+        Conv2DLayer = layers.Conv2DLayer
+        MaxPool2DLayer = layers.MaxPool2DLayer
+
+    Maxout = layers.pool.FeaturePoolLayer
+
+    # Fix seed
+    np.random.seed(42)
+
+    # Run algorithm
     fit()

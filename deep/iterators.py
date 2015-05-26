@@ -2,6 +2,7 @@ import numpy as np
 from nolearn import BatchIterator
 from params import *
 import scipy
+from augment import Augmenter
 import cv2
 
 import util
@@ -144,50 +145,11 @@ class AugmentingParallelBatchIterator(ParallelBatchIterator):
 	def __init__(self, keys, batch_size, std, mean, y_all = None):
 		super(AugmentingParallelBatchIterator, self).__init__(keys, batch_size, std, mean, y_all)
 
-		# Set center point
-		self.center_shift = np.array((PIXELS, PIXELS)) / 2. - 0.5
+		# Initialize augmenter
+		self.augmenter = Augmenter()
 
 	def transform(self, Xb, yb):
-		Xbb = np.zeros(Xb.shape, dtype=np.float32)
-
-		# Random number 0-1 whether we flip or not
-		random_flip = np.random.randint(2)
-
-		# Translation shift
-		shift_x = np.random.uniform(*AUGMENTATION_PARAMS['translation_range'])
-		shift_y = np.random.uniform(*AUGMENTATION_PARAMS['translation_range'])
-
-		# Rotation, zoom
-		rotation = np.random.uniform(*AUGMENTATION_PARAMS['rotation_range'])
-		log_zoom_range = [np.log(z) for z in AUGMENTATION_PARAMS['zoom_range']]
-		zoom = np.exp(np.random.uniform(*log_zoom_range))
-
-		# Color AUGMENTATION_PARAMS
-		if COLOR_AUGMENTATION:
-			random_hue = np.random.uniform(*AUGMENTATION_PARAMS['hue_range'])
-			random_saturation = np.random.uniform(*AUGMENTATION_PARAMS['saturation_range'])
-			random_value = np.random.uniform(*AUGMENTATION_PARAMS['value_range'])
-
-		# Define affine matrix
-		# TODO: Should be able to incorporate flips directly instead of through an extra call
-		M = cv2.getRotationMatrix2D((self.center_shift[0], self.center_shift[1]), rotation, zoom)
-		M[0, 2] += shift_x
-		M[1, 2] += shift_y
-
-		# For every image, perform the actual warp, per channel
-		for i in xrange(Xb.shape[0]):
-			im = cv2.warpAffine(Xb[i].transpose(1, 2, 0), M, (PIXELS, PIXELS))
-
-			# im is now RGB 01c
-
-			if random_flip == 1:
-				im = cv2.flip(im, 0)
-
-			if COLOR_AUGMENTATION:
-				im = util.hsv_augment(im, random_hue, random_saturation, random_value)
-
-			# Back to c01
-			Xbb[i] = im.transpose(2, 0, 1)
+		Xbb = self.augmenter.augment(Xb)
 
 		# Do normalization in super-method
 		Xbb, yb = super(AugmentingParallelBatchIterator, self).transform(Xbb, yb)

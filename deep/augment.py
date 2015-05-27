@@ -11,11 +11,13 @@ import util
 
 class Augmenter():
     def __init__(self):
-
         #Determine the center to rotate around
         self.center_shift = np.array((PIXELS, PIXELS)) / 2. - 0.5
 
     def augment(self, Xb):
+        if not AUGMENT:
+            return Xb
+            
         Xbb = np.zeros(Xb.shape, dtype=np.float32)
 
         # Random number 0-1 whether we flip or not
@@ -31,10 +33,9 @@ class Augmenter():
         zoom = np.exp(np.random.uniform(*log_zoom_range))
 
         # Color AUGMENTATION_PARAMS
-        if COLOR_AUGMENTATION:
-            random_hue = np.random.uniform(*AUGMENTATION_PARAMS['hue_range'])
-            random_saturation = np.random.uniform(*AUGMENTATION_PARAMS['saturation_range'])
-            random_value = np.random.uniform(*AUGMENTATION_PARAMS['value_range'])
+        random_hue = np.random.uniform(*AUGMENTATION_PARAMS['hue_range'])
+        random_saturation = np.random.uniform(*AUGMENTATION_PARAMS['saturation_range'])
+        random_value = np.random.uniform(*AUGMENTATION_PARAMS['value_range'])
 
         # Define affine matrix
         # TODO: Should be able to incorporate flips directly instead of through an extra call

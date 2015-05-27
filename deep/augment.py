@@ -15,9 +15,6 @@ class Augmenter():
         self.center_shift = np.array((PIXELS, PIXELS)) / 2. - 0.5
 
     def augment(self, Xb):
-        if not AUGMENT:
-            return Xb
-            
         Xbb = np.zeros(Xb.shape, dtype=np.float32)
 
         # Random number 0-1 whether we flip or not

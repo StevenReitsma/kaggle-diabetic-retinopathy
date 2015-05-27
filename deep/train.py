@@ -56,7 +56,7 @@ def fit():
 
         input_shape=(None, CHANNELS, PIXELS, PIXELS),
 
-        conv1_num_filters=32, conv1_filter_size=(8, 8), conv1_pad=1, conv1_stride=(2, 2), pool1_pool_size=(2, 2), pool1_stride=(2, 2),
+        conv1_num_filters=32, conv1_filter_size=(8, 8), conv1_pad = 1, conv1_stride=(2, 2), pool1_pool_size=(2, 2), pool1_stride=(2, 2),
         conv2_num_filters=64, conv2_filter_size=(5, 5), pool2_pool_size=(2, 2), pool2_stride=(2, 2),
         conv3_num_filters=128, conv3_filter_size=(3, 3), pool3_pool_size=(2, 2), pool3_stride=(2, 2),
         conv4_num_filters=256, conv4_filter_size=(3, 3), pool4_pool_size=(2, 2), pool4_stride=(2, 2),
@@ -94,7 +94,7 @@ def fit():
         eval_size=0.1,
 
         # Need to specify splits manually like indicated below!
-        create_validation_split=False,
+        create_validation_split=True,
     )
 
     # It is recommended to use the same training/validation split every model for ensembling and threshold optimization
@@ -106,15 +106,6 @@ def fit():
     net.y_valid = np.load(IMAGE_SOURCE + "/y_valid.npy")
 
     net.fit(X, y)
-
-    # Load best weights for histograms
-    net.load_weights_from("models/" + MODEL_ID + "/best_weights")
-
-    if REGRESSION:
-    	hist, _ = np.histogram(np.minimum(4, np.maximum(0, np.round(net.predict_proba(X)))), bins=5)
-    	true, _ = np.histogram(y.squeeze(), bins=5)
-    	print "Distribution over class predictions on training set:", hist / float(y.shape[0])
-    	print "True distribution: ",  true / float(y.shape[0])
 
 # Imports are necessary for scoop as Theano gets confused if approached from 4 threads
 if __name__ == "__main__":

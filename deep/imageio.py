@@ -57,6 +57,10 @@ class ImageIO():
         np.save(IMAGE_SOURCE + '/std.npy', std)
         np.save(IMAGE_SOURCE + '/mean.npy', mean)
 
+        scipy.misc.imsave('mean.png', np.cast['int32'](mean))
+        scipy.misc.imsave('std.png', np.cast['int32'](std))
+
+
         return variance, mean
 
 
@@ -79,7 +83,6 @@ class ImageIO():
 
         center_shift = np.array((pix,pix)) / 2. - 0.5
 
-
         for rotation in xrange(360):
             M = cv2.getRotationMatrix2D((center_shift[0], center_shift[1]), rotation, 1.0)
 
@@ -91,6 +94,9 @@ class ImageIO():
 
             means.append(m_rot)
             stds.append(s_rot)
+
+            means.append(m_rot_flipped)
+            stds.append(s_rot_flipped)
 
 
         mean_circularized = sum(means) / len(means)

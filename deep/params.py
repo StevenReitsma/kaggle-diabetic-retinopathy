@@ -4,7 +4,8 @@ IMAGE_SOURCE = "../data/processed"
 
 PIXELS = 256
 
-BATCH_SIZE = 32
+# Lower than 64 during training messes up something
+BATCH_SIZE = 64
 START_LEARNING_RATE = 0.01
 MOMENTUM = 0.9
 

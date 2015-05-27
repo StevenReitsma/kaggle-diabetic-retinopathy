@@ -13,9 +13,9 @@ class AdjustVariable(object):
 	def __call__(self, nn, train_history):
 		epoch = train_history[-1]['epoch']
 
-		stop = self.start * 10e-2
+		stop = self.start * 10e-1
 		stop2 = stop * 10e-1
-		stop3 = stop2 * 10e-2
+		stop3 = stop2 * 10e-1
 
 		ls = np.linspace(self.start, stop, 50)
 		ls2 = np.linspace(stop, stop2, 150)
@@ -23,7 +23,7 @@ class AdjustVariable(object):
 
 		if epoch <= 50:
 			new_value = float32(ls[epoch - 1])
-		elif epoch <= 150:
+		elif epoch <= 200:
 			new_value = float32(ls2[epoch - 1 - 50])
 		else:
 			new_value = float32(ls3[epoch - 1 - 200])

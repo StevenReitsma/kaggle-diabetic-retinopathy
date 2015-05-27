@@ -42,7 +42,7 @@ def hsv_augment(im, hue, saturation, value):
 	black_indices = im[:, :, 2] == 0
 
 	# Add random hue, saturation and value
-	im[:, :, 0] = (im[:, :, 0] + hue) % 360
+	im[:, :, 0] = (im[:, :, 0] + hue) % 1
 	im[:, :, 1] = im[:, :, 1] + saturation
 	im[:, :, 2] = im[:, :, 2] + value
 

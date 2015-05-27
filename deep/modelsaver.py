@@ -14,7 +14,7 @@ class ModelSaver(object):
 		epoch = train_history[-1]['epoch']
 		valid_loss = train_history[-1]['kappa']
 
-		if valid_loss < self.best_valid:
+		if valid_loss > self.best_valid:
 			self.best_valid = valid_loss
 			self.best_valid_epoch = epoch
 			nn.save_weights_to("models/" + MODEL_ID + "/best_weights")

@@ -5,6 +5,7 @@ models/
 *~
 *.spyder*
 *.png
+*.db
 
 deep/plots/*
 

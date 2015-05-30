@@ -1,13 +1,17 @@
+# Before doing anything, start Agg backend
+import matplotlib as mpl
+mpl.use('Agg', force=True) # sets mpl so it doesn't require $DISPLAY on coma
+
 import numpy as np
 from params import *
-
+64
 def quadratic_kappa(true, predicted):
     return kappa(true, predicted, weights='quadratic')
 
 def fit():
     # Create working directory
-    if not os.path.exists("models/" + MODEL_ID):
-        os.makedirs("models/" + MODEL_ID)
+    if not os.path.exists(SAVE_URL + "/" + MODEL_ID):
+        os.makedirs(SAVE_URL + "/" + MODEL_ID)
 
     io = ImageIO()
 
@@ -94,7 +98,7 @@ def fit():
         eval_size=0.1,
 
         # Need to specify splits manually like indicated below!
-        create_validation_split=True,
+        create_validation_split=False,
     )
 
     # It is recommended to use the same training/validation split every model for ensembling and threshold optimization
@@ -123,11 +127,18 @@ if __name__ == "__main__":
     from modelsaver import ModelSaver
     import os
 
-    # Import cuDNN if using GPU
     if 'gpu' in theano.config.device:
-        from lasagne.layers import dnn
-        Conv2DLayer = dnn.Conv2DDNNLayer
-        MaxPool2DLayer = dnn.MaxPool2DDNNLayer
+        # Half of coma does not support cuDNN, check whether we can use it on this node
+        # If not, use cuda_convnet bindings
+        from theano.sandbox.cuda.dnn import dnn_available
+        if dnn_available():
+            from lasagne.layers import dnn
+            Conv2DLayer = dnn.Conv2DDNNLayer
+            MaxPool2DLayer = dnn.MaxPool2DDNNLayer
+        else:
+            from lasagne.layers import cuda_convnet
+            Conv2DLayer = cuda_convnet.Conv2DCCLayer
+            MaxPool2DLayer = cuda_convnet.MaxPool2DCCLayer
     else:
         Conv2DLayer = layers.Conv2DLayer
         MaxPool2DLayer = layers.MaxPool2DLayer

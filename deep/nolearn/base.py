@@ -23,7 +23,7 @@ from tabulate import tabulate
 import theano
 from theano import tensor as T
 
-from params import MODEL_ID
+from params import MODEL_ID, SAVE_URL
 
 class _list(list):
     pass
@@ -431,10 +431,10 @@ class NeuralNet(BaseEstimator):
                 X_valid, y_valid = X[len(X):], y[len(y):]
 
             # Save validation split
-            np.save("models/" + MODEL_ID + "/X_valid.npy", X_valid)
-            np.save("models/" + MODEL_ID + "/y_valid.npy", y_valid)
-            np.save("models/" + MODEL_ID + "/X_train.npy", X_train)
-            np.save("models/" + MODEL_ID + "/y_train.npy", y_train)
+            np.save(SAVE_URL + "/" + MODEL_ID + "/X_valid.npy", X_valid)
+            np.save(SAVE_URL + "/" + MODEL_ID + "/y_valid.npy", y_valid)
+            np.save(SAVE_URL + "/" + MODEL_ID + "/X_train.npy", X_train)
+            np.save(SAVE_URL + "/" + MODEL_ID + "/y_train.npy", y_train)
 
             return X_train, X_valid, y_train, y_valid
         else:

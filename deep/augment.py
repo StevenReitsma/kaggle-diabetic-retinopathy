@@ -65,10 +65,10 @@ class Augmenter():
         return Xbb
 
 # Augments a single image, singled out for easier profiling
-def augment_image(im, M=0, random_flip=0,
+def augment_image(original_image, M=0, random_flip=0,
                     random_hue=0, random_saturation=0, random_value=0):
 
-        im = cv2.warpAffine(im.transpose(1, 2, 0), M, (PIXELS, PIXELS))
+        im = cv2.warpAffine(original_image.transpose(1, 2, 0), M, (PIXELS, PIXELS))
 
         # im is now RGB 01c
 

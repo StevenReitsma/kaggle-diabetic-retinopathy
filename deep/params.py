@@ -1,6 +1,15 @@
 import time
+import socket
 
-IMAGE_SOURCE = "../data/processed"
+# Check whether we are working on the COMA-cluster
+if "coma" in socket.getfqdn():
+	IMAGE_SOURCE = "/scratch/sreitsma/kaggle-diabetic-retinopathy/processed"
+	SAVE_URL = "/scratch/sreitsma/kaggle-diabetic-retinopathy/models"
+	ON_COMA = True
+else:
+	IMAGE_SOURCE = "../data/processed"
+	SAVE_URL = "models"
+	ON_COMA = False
 
 PIXELS = 256
 
@@ -18,7 +27,7 @@ COLOR_AUGMENTATION = True
 NETWORK_INPUT_TYPE = 'RGB'
 
 MODEL_ID = str(int(time.time()))
-CIRCULARIZED_MEAN_STD = True
+CIRCULARIZED_MEAN_STD = False
 CONCURRENT_AUGMENTATION = False
 
 AUGMENTATION_PARAMS = {

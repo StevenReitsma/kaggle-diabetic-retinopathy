@@ -25,8 +25,8 @@ def weighted_round(predictions, W):
 	return preds
 
 def predict(model_id, raw, validation):
-	model = joblib.load("models/" + model_id + "/model")
-	model.load_weights_from("models/" + model_id + "/best_weights")
+	model = joblib.load(SAVE_URL + "/" + model_id + "/model")
+	model.load_weights_from(SAVE_URL + "/" + model_id + "/best_weights")
 
 	io = ImageIO()
 	mean, std = io.load_mean_std()
@@ -60,15 +60,15 @@ def predict(model_id, raw, validation):
 	y.loc[keys] = pred[:, np.newaxis] # add axis for pd compatability
 
 	if validation:
-		filename = "models/" + model_id + "/raw_predictions_validation.csv"
+		filename = SAVE_URL + "/" + model_id + "/raw_predictions_validation.csv"
 	else:
-		filename = "models/" + model_id + "/raw_predictions.csv"
+		filename = SAVE_URL + "/" + model_id + "/raw_predictions.csv"
 
 	y.to_csv(filename)
 	print "Saved raw predictions to " + filename
 
 	if not raw and not validation:
-		W = np.load("models/" + model_id + "/optimal_thresholds.npy")
+		W = np.load(SAVE_URL + "/" + model_id + "/optimal_thresholds.npy")
 
 		pred = weighted_round(pred, W)
 
@@ -79,13 +79,14 @@ def predict(model_id, raw, validation):
 
 		y.loc[keys] = pred
 
-		y.to_csv("models/" + model_id + "/submission.csv")
+		y.to_csv(SAVE_URL + "/" + model_id + "/submission.csv")
 
 		print "Gzipping..."
 
-		call("gzip -c models/" + model_id + "/submission.csv > models/" + model_id + "/submission.csv.gz", shell=True)
+		if not ON_COMA:
+			call("gzip -c " + SAVE_URL + "/" + model_id + "/submission.csv > " + SAVE_URL + "/" + model_id + "/submission.csv.gz", shell=True)
 
-		print "Done! File saved to models/" + model_id + "/submission.csv.gz"
+		print "Done! File saved to models/" + model_id + "/submission.csv"
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description='Predict using optimized thresholds and write to file.')

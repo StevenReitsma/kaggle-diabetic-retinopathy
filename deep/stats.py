@@ -11,11 +11,10 @@ class Stat(object):
 	def __call__(self, nn, train_history):
 		kappa = [x['kappa'] for x in train_history]
 
-		#plt.clear()
 		fig, ax = plt.subplots(1)
 		ax.plot(kappa, antialiased=True)
 		ax.set_xlabel("Epoch")
 		ax.set_ylabel("Kappa")
 
-		plt.savefig("models/" + MODEL_ID + "/kappa.png")
+		plt.savefig(SAVE_URL + "/" + MODEL_ID + "/kappa.png")
 		plt.close("all")

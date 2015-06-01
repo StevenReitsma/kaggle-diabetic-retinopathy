@@ -118,7 +118,7 @@ def define_net():
         eval_size=0.1,
 
         # Need to specify splits manually like indicated below!
-        create_validation_split=False,
+        create_validation_split=params.SUBSET>0,
     )
 
     # It is recommended to use the same training/validation split every model for ensembling and threshold optimization

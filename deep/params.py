@@ -23,7 +23,7 @@ class Params():
 		self.CHANNELS = 3
 		self.REGRESSION = True
 
-		self.SUBSET = 0
+		self.SUBSET = 5000
 		self.AUGMENT = True
 		self.COLOR_AUGMENTATION = True
 		self.NETWORK_INPUT_TYPE = 'RGB'

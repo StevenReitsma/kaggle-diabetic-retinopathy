@@ -62,12 +62,9 @@ class ParallelBatchIterator(object):
 		n_samples = self.X.shape[0]
 		bs = self.batch_size
 
-		for i in xrange((n_samples + bs - 1) // bs):
+		for indices in util.chunks(self.X,bs):
 			#t = time.time()
-			start_index = i * bs
-			end_index = (i+1) * bs
 
-			indices = self.X[start_index:end_index]
 			key_batch = self.keys[indices]
 
 			cur_batch_size = len(indices)

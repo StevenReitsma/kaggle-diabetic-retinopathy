@@ -1,7 +1,6 @@
 from lasagne import layers, nonlinearities
 from nolearn.lasagne import NeuralNet
 import theano
-from custom_layers import FlattenLayer
 
 import util
 from iterators import ParallelBatchIterator, AugmentingParallelBatchIterator
@@ -12,7 +11,6 @@ from modelsaver import ModelSaver
 from params import *
 import numpy as np
 from skll.metrics import kappa
-import pickle
 
 def quadratic_kappa(true, predicted):
     return kappa(true, predicted, weights='quadratic')
@@ -31,15 +29,12 @@ def define_net():
     mean, std = io.load_mean_std(circularized=params.CIRCULARIZED_MEAN_STD)
     keys = y.index.values
 
-    pkl_file = open(params.IMAGE_SOURCE + '/../coates/activations500centroids.p', 'rb')
-    coates = pickle.load(pkl_file)
-
     if params.AUGMENT:
-        train_iterator = AugmentingParallelBatchIterator(keys, params.BATCH_SIZE, std, mean, y_all = y, coates_features = coates)
+        train_iterator = AugmentingParallelBatchIterator(keys, params.BATCH_SIZE, std, mean, y_all = y)
     else:
-        train_iterator = ParallelBatchIterator(keys, params.BATCH_SIZE, std, mean, y_all = y, coates_features = coates)
+        train_iterator = ParallelBatchIterator(keys, params.BATCH_SIZE, std, mean, y_all = y)
 
-    test_iterator = ParallelBatchIterator(keys, params.BATCH_SIZE, std, mean, y_all = y, coates_features = coates)
+    test_iterator = ParallelBatchIterator(keys, params.BATCH_SIZE, std, mean, y_all = y)
 
     if params.REGRESSION:
         y = util.float32(y)
@@ -74,9 +69,6 @@ def define_net():
             ('pool3', MaxPool2DLayer),
             ('conv4', Conv2DLayer),
             ('pool4', MaxPool2DLayer),
-            ('flatten', FlattenLayer),
-            ('coates', layers.InputLayer),
-            ('merge', layers.ConcatLayer),
             ('dropouthidden1', layers.DropoutLayer),
             ('hidden1', layers.DenseLayer),
             ('maxout1', Maxout),
@@ -88,7 +80,6 @@ def define_net():
         ],
 
         input_shape=(None, params.CHANNELS, params.PIXELS, params.PIXELS),
-        coates_shape=(None, 1, 1, params.COATES_CENTROIDS*4),
 
         conv1_num_filters=32, conv1_filter_size=(8, 8), conv1_pad = 1, conv1_stride=(2, 2), pool1_pool_size=(2, 2), pool1_stride=(2, 2),
         conv2_num_filters=64, conv2_filter_size=(5, 5), pool2_pool_size=(2, 2), pool2_stride=(2, 2),
@@ -104,9 +95,6 @@ def define_net():
 
         maxout1_pool_size=2,
         maxout2_pool_size=2,
-
-        merge_incomings=['flatten', 'coates'],
-        merge_axis=3,
 
         output_num_units=1 if params.REGRESSION else 5,
         output_nonlinearity=None if params.REGRESSION else nonlinearities.softmax,

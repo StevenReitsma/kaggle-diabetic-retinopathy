@@ -93,13 +93,13 @@ class ParallelBatchIterator(object):
 			# Transform the batch (augmentation, normalization, etc.)
 			X_batch, y_batch = self.transform(X_batch, y_batch)
 
-			# Get Coates
-			coates_batch = np.array([self.coates_features[k] for k in key_batch])
-			coates_batch = coates_batch.reshape(cur_batch_size, 1, 1, -1)
-
 			#print "Produce time: %.2f ms" % ((time.time() - t)*1000)
 
 			if self.coates_features is not None:
+				# Get Coates
+				coates_batch = np.array([self.coates_features[k] for k in key_batch])
+				coates_batch = coates_batch.reshape(cur_batch_size, 1, 1, -1)
+
 				yield {'input': X_batch, 'coates': coates_batch}, y_batch
 			else:
 				yield X_batch, y_batch

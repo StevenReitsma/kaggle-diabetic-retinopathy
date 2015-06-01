@@ -9,8 +9,8 @@
 # Run script on long partition (lowest priority)
 #SBATCH --partition=long
 
-# Reserve 4GB memory per node
-#SBATCH --mem=4G
+# Reserve memory per node
+#SBATCH --mem=6G
 
 # Reserve one node
 #SBATCH --nodes=1
@@ -19,7 +19,7 @@
 #SBATCH --cpus-per-task=2
 
 # Set name
-#SBATCH --job-name=DBR_0001
+#SBATCH --job-name=JOB
 
 # Set notification email
 #SBATCH --mail-user=s.reitsma@ru.nl
@@ -39,13 +39,16 @@ export PATH=/usr/local/cuda-6.5/bin:$PATH
 export LIBRARY_PATH=/home/sreitsma/cudnn-6.5-linux-x64-v2:/usr/local/cuda-6.5/lib64:$LIBRARY_PATH
 export CPATH=/home/sreitsma/cudnn-6.5-linux-x64-v2:/usr/local/cuda-6.5/lib64:$CPATH
 
+# Post Slack status
+curl --silent -X POST --data-urlencode "payload={\"channel\": \"#coma-status\", \"username\": \"coma-bot\", \"text\": \"Job '$SLURM_JOB_NAME' started on coma (job id: $SLURM_JOB_ID).\", \"icon_emoji\": \":rocket:\"}" https://hooks.slack.com/services/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
+
 # Copy files from /vol/astro0 to /scratch over InfiniBand for local I/O access
 echo "Copying files from /vol/astro0 to /scratch"
 cp -R $REMOTE_DIR/* $SCRATCH_DIR/
 
-# Start script
+# Start script and disable output buffering
 echo "Running script"
-python $SCRIPT_DIR/deep/train.py
+stdbuf -oL -eL python $SCRIPT_DIR/deep/train.py $SLURM_JOB_NAME
 
 # After script has finished
 # Copy resulting model to /vol/astro0
@@ -55,3 +58,6 @@ cp -R $SCRATCH_DIR/models $REMOTE_DIR/
 # Cleanup scratch
 echo "Removing /scratch folders"
 rm -r $SCRATCH_DIR/*
+
+# Post Slack status
+curl --silent -X POST --data-urlencode "payload={\"channel\": \"#coma-status\", \"username\": \"coma-bot\", \"text\": \"Job '$SLURM_JOB_NAME' finished on coma (job id: $SLURM_JOB_ID).\", \"icon_emoji\": \":rocket:\"}" https://hooks.slack.com/services/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

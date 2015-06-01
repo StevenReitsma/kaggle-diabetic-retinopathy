@@ -17,3 +17,10 @@ def load_labels():
 def load_sample_submission():
 	return pd.DataFrame.from_csv(
 		os.path.join(IMAGE_SOURCE, "..", "sampleSubmission.csv"))
+
+def chunks(l, n):
+    """ Yield successive n-sized chunks from l.
+        from http://goo.gl/DZNhk
+    """
+    for i in xrange(0, len(l), n):
+        yield l[i:i+n]

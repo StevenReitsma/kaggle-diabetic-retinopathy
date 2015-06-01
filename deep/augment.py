@@ -42,8 +42,6 @@ class Augmenter():
         M[0, 2] += shift_x
         M[1, 2] += shift_y
 
-        #start = time.clock()
-
         augment_partial = partial(augment_image,
                                     M=M,
                                     random_flip=random_flip,
@@ -60,11 +58,6 @@ class Augmenter():
             for i in xrange(Xb.shape[0]):
                 Xbb[i] = augment_partial(Xb[i])
 
-
-        #elapsed = time.clock() - start
-        #print elapsed
-
-
         return Xbb
 
 
@@ -79,6 +72,7 @@ def augment_image(im, M=0, random_flip=0,
 
         if random_flip == 1:
             im = cv2.flip(im, 0)
+
 
         if COLOR_AUGMENTATION:
             # Convert image to range 0-1.

@@ -1,44 +1,20 @@
+# Before doing anything, start Agg backend
+import matplotlib as mpl
+mpl.use('Agg', force=True) # sets mpl so it doesn't require $DISPLAY on coma
+
 import numpy as np
-import scoop
 from params import *
-
-
-#Necessary for scoop as Theano gets confused if approached from 4 threads
-if __name__ == '__main__':
-    from lasagne import layers, nonlinearities
-    from nolearn import NeuralNet
-    import theano
-
-    import util
-    from iterators import ParallelBatchIterator, AugmentingParallelBatchIterator
-    from learning_rate import AdjustVariable
-    from early_stopping import EarlyStopping
-    from imageio import ImageIO
-    from skll.metrics import kappa
-    import stats
-    from modelsaver import ModelSaver
-
-
-
-    # Import cuDNN if using GPU
-    if USE_GPU:
-        from lasagne.layers import dnn
-        Conv2DLayer = dnn.Conv2DDNNLayer
-        MaxPool2DLayer = dnn.MaxPool2DDNNLayer
-    else:
-        Conv2DLayer = layers.Conv2DLayer
-        MaxPool2DLayer = layers.MaxPool2DLayer
-
-    Maxout = layers.pool.FeaturePoolLayer
-
-    # Fix seed
-    np.random.seed(42)
-
+64
 def quadratic_kappa(true, predicted):
     return kappa(true, predicted, weights='quadratic')
 
 def fit():
+    # Create working directory
+    if not os.path.exists(SAVE_URL + "/" + MODEL_ID):
+        os.makedirs(SAVE_URL + "/" + MODEL_ID)
+
     io = ImageIO()
+
     # Read pandas csv labels
     y = util.load_labels()
 
@@ -84,7 +60,7 @@ def fit():
 
         input_shape=(None, CHANNELS, PIXELS, PIXELS),
 
-        conv1_num_filters=32, conv1_filter_size=(8, 8), conv1_pad=1, conv1_stride=(2, 2), pool1_pool_size=(2, 2), pool1_stride=(2, 2),
+        conv1_num_filters=32, conv1_filter_size=(8, 8), conv1_pad = 1, conv1_stride=(2, 2), pool1_pool_size=(2, 2), pool1_stride=(2, 2),
         conv2_num_filters=64, conv2_filter_size=(5, 5), pool2_pool_size=(2, 2), pool2_stride=(2, 2),
         conv3_num_filters=128, conv3_filter_size=(3, 3), pool3_pool_size=(2, 2), pool3_stride=(2, 2),
         conv4_num_filters=256, conv4_filter_size=(3, 3), pool4_pool_size=(2, 2), pool4_stride=(2, 2),
@@ -113,23 +89,64 @@ def fit():
             AdjustVariable('update_learning_rate', start=START_LEARNING_RATE),
             EarlyStopping(patience=100),
             stats.Stat(),
-            ModelSaver(output="models/model")
+            ModelSaver()
         ],
         max_epochs=500,
         verbose=1,
+
+        # Only relevant when create_validation_split = True
         eval_size=0.1,
+
+        # Need to specify splits manually like indicated below!
+        create_validation_split=False,
     )
+
+    # It is recommended to use the same training/validation split every model for ensembling and threshold optimization
+    #
+    # To set specific training/validation split:
+    net.X_train = np.load(IMAGE_SOURCE + "/X_train.npy")
+    net.X_valid = np.load(IMAGE_SOURCE + "/X_valid.npy")
+    net.y_train = np.load(IMAGE_SOURCE + "/y_train.npy")
+    net.y_valid = np.load(IMAGE_SOURCE + "/y_valid.npy")
 
     net.fit(X, y)
 
-    # Load best weights for histograms
-    net.load_weights_from("models/model_best")
-
-    if REGRESSION:
-    	hist, _ = np.histogram(np.minimum(4, np.maximum(0, np.round(net.predict_proba(X)))), bins=5)
-    	true, _ = np.histogram(y.squeeze(), bins=5)
-    	print "Distribution over class predictions on training set:", hist / float(y.shape[0])
-    	print "True distribution: ",  true / float(y.shape[0])
-
+# Imports are necessary for scoop as Theano gets confused if approached from 4 threads
 if __name__ == "__main__":
+    from lasagne import layers, nonlinearities
+    from nolearn import NeuralNet
+    import theano
+
+    import util
+    from iterators import ParallelBatchIterator, AugmentingParallelBatchIterator
+    from learning_rate import AdjustVariable
+    from early_stopping import EarlyStopping
+    from imageio import ImageIO
+    from skll.metrics import kappa
+    import stats
+    from modelsaver import ModelSaver
+    import os
+
+    if 'gpu' in theano.config.device:
+        # Half of coma does not support cuDNN, check whether we can use it on this node
+        # If not, use cuda_convnet bindings
+        from theano.sandbox.cuda.dnn import dnn_available
+        if dnn_available():
+            from lasagne.layers import dnn
+            Conv2DLayer = dnn.Conv2DDNNLayer
+            MaxPool2DLayer = dnn.MaxPool2DDNNLayer
+        else:
+            from lasagne.layers import cuda_convnet
+            Conv2DLayer = cuda_convnet.Conv2DCCLayer
+            MaxPool2DLayer = cuda_convnet.MaxPool2DCCLayer
+    else:
+        Conv2DLayer = layers.Conv2DLayer
+        MaxPool2DLayer = layers.MaxPool2DLayer
+
+    Maxout = layers.pool.FeaturePoolLayer
+
+    # Fix seed
+    np.random.seed(42)
+
+    # Run algorithm
     fit()

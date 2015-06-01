@@ -4,9 +4,10 @@ models/
 
 *~
 *.spyder*
-*.png
+kappa*.png
 
-deep/plots/*
+deep/models/*
+deep/old_files/*
 
 
 # Byte-compiled / optimized / DLL files
@@ -69,3 +70,5 @@ target/
 
 # Ignore background lit
 papers/
+
+*/Thumbs.db

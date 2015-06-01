@@ -23,6 +23,8 @@ from tabulate import tabulate
 import theano
 from theano import tensor as T
 
+from params import MODEL_ID, SAVE_URL
+
 class _list(list):
     pass
 
@@ -84,6 +86,7 @@ class NeuralNet(BaseEstimator):
         on_training_finished=(),
         more_params=None,
         verbose=0,
+        create_validation_split=True,
         **kwargs
         ):
         if loss is not None:
@@ -114,6 +117,7 @@ class NeuralNet(BaseEstimator):
         self.on_training_finished = on_training_finished
         self.more_params = more_params or {}
         self.verbose = verbose
+        self.create_validation_split = create_validation_split
 
         for key in kwargs.keys():
             assert not hasattr(self, key)
@@ -412,20 +416,29 @@ class NeuralNet(BaseEstimator):
         return float(score(self.predict(X), y))
 
     def train_test_split(self, X, y, eval_size):
-        if eval_size:
-            if self.regression:
-                kf = KFold(y.shape[0], round(1. / eval_size))
+        if self.create_validation_split:
+            if eval_size:
+                if self.regression:
+                    kf = KFold(y.shape[0], round(1. / eval_size))
+                else:
+                    kf = StratifiedKFold(y, round(1. / eval_size))
+
+                train_indices, valid_indices = next(iter(kf))
+                X_train, y_train = X[train_indices], y[train_indices]
+                X_valid, y_valid = X[valid_indices], y[valid_indices]
             else:
-                kf = StratifiedKFold(y, round(1. / eval_size))
+                X_train, y_train = X, y
+                X_valid, y_valid = X[len(X):], y[len(y):]
 
-            train_indices, valid_indices = next(iter(kf))
-            X_train, y_train = X[train_indices], y[train_indices]
-            X_valid, y_valid = X[valid_indices], y[valid_indices]
+            # Save validation split
+            np.save(SAVE_URL + "/" + MODEL_ID + "/X_valid.npy", X_valid)
+            np.save(SAVE_URL + "/" + MODEL_ID + "/y_valid.npy", y_valid)
+            np.save(SAVE_URL + "/" + MODEL_ID + "/X_train.npy", X_train)
+            np.save(SAVE_URL + "/" + MODEL_ID + "/y_train.npy", y_train)
+
+            return X_train, X_valid, y_train, y_valid
         else:
-            X_train, y_train = X, y
-            X_valid, y_valid = X[len(X):], y[len(y):]
-
-        return X_train, X_valid, y_train, y_valid
+            return self.X_train, self.X_valid, self.y_train, self.y_valid
 
     def get_all_layers(self):
         return self.layers_.values()

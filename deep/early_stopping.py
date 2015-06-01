@@ -21,5 +21,5 @@ class EarlyStopping(object):
 			print("Early stopping.")
 			print("Best valid loss was {:.6f} at epoch {}.".format(
 				self.best_valid, self.best_valid_epoch))
-			nn.load_weights_from(self.best_weights)
+			nn.load_params_from(self.best_weights)
 			raise StopIteration()

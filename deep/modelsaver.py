@@ -1,5 +1,4 @@
 import numpy as np
-import joblib
 from params import *
 
 class ModelSaver(object):
@@ -17,5 +16,4 @@ class ModelSaver(object):
 		if valid_loss > self.best_valid:
 			self.best_valid = valid_loss
 			self.best_valid_epoch = epoch
-			nn.save_weights_to(SAVE_URL + "/" + MODEL_ID + "/best_weights")
-			joblib.dump(nn, SAVE_URL + "/" + MODEL_ID + "/model")
+			nn.save_params_to(params.SAVE_URL + "/" + params.MODEL_ID + "/best_weights")

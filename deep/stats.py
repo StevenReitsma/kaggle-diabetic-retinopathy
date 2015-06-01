@@ -16,5 +16,5 @@ class Stat(object):
 		ax.set_xlabel("Epoch")
 		ax.set_ylabel("Kappa")
 
-		plt.savefig(SAVE_URL + "/" + MODEL_ID + "/kappa.png")
+		plt.savefig(params.SAVE_URL + "/" + params.MODEL_ID + "/kappa.png")
 		plt.close("all")

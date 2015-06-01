@@ -13,11 +13,11 @@ def bin2array(_string):
 def load_labels():
 	# Read CSV file with labels
 	return pd.DataFrame.from_csv(
-		os.path.join(IMAGE_SOURCE, "..", "trainLabels.csv"))
+		os.path.join(params.IMAGE_SOURCE, "..", "trainLabels.csv"))
 
 def load_sample_submission():
 	return pd.DataFrame.from_csv(
-		os.path.join(IMAGE_SOURCE, "..", "sampleSubmission.csv"))
+		os.path.join(params.IMAGE_SOURCE, "..", "sampleSubmission.csv"))
 
 def chunks(l, n):
     """ Yield successive n-sized chunks from l.
@@ -59,7 +59,7 @@ def hsv_augment(im, hue, saturation, value):
 	# Clip pixels from 0 to 1
 	im = np.clip(im, 0, 1)
 
-	if NETWORK_INPUT_TYPE == 'RGB':
+	if params.NETWORK_INPUT_TYPE == 'RGB':
 		# Rescale hue from 0-1 to 0-360.
 		im[:, :, 0] *= 360.
 

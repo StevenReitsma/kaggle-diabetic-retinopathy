@@ -1,5 +1,5 @@
 import numpy as np
-from nolearn import BatchIterator
+from nolearn.lasagne import BatchIterator
 from params import *
 import scipy
 from augment import Augmenter
@@ -36,7 +36,7 @@ class ParallelBatchIterator(object):
 	keys sent as the second argument instead of the y_batch.
 	"""
 
-	def __init__(self, keys, batch_size, std, mean, y_all = None, test = False, cv = False):
+	def __init__(self, keys, batch_size, std, mean, coates_features = None, y_all = None, test = False, cv = False):
 		self.batch_size = batch_size
 
 		self.keys = keys
@@ -45,8 +45,9 @@ class ParallelBatchIterator(object):
 		self.mean = mean
 		self.std = std
 		self.cv = cv
+		self.coates_features = coates_features
 
-		if NETWORK_INPUT_TYPE == 'HSV':
+		if params.NETWORK_INPUT_TYPE == 'HSV':
 			self.mean = self.mean / 255.
 			self.std = self.std / 255.
 			self.mean = cv2.cvtColor(self.mean.transpose(1, 2, 0), cv2.COLOR_RGB2HSV).transpose(2, 0, 1)
@@ -71,7 +72,7 @@ class ParallelBatchIterator(object):
 
 			cur_batch_size = len(indices)
 
-			X_batch = np.zeros((cur_batch_size, CHANNELS, PIXELS, PIXELS), dtype=np.float32)
+			X_batch = np.zeros((cur_batch_size, params.CHANNELS, params.PIXELS, params.PIXELS), dtype=np.float32)
 			y_batch = None
 
 			if self.test:
@@ -87,18 +88,25 @@ class ParallelBatchIterator(object):
 
 			# Read all images in the batch
 			for i, key in enumerate(key_batch):
-				X_batch[i] = scipy.misc.imread(IMAGE_SOURCE + "/" + subdir + "/" + key + ".jpeg").transpose(2, 0, 1)
+				X_batch[i] = scipy.misc.imread(params.IMAGE_SOURCE + "/" + subdir + "/" + key + ".jpeg").transpose(2, 0, 1)
 
 			# Transform the batch (augmentation, normalization, etc.)
 			X_batch, y_batch = self.transform(X_batch, y_batch)
 
+			# Get Coates
+			coates_batch = np.array([self.coates_features[k] for k in key_batch])
+			coates_batch = coates_batch.reshape(cur_batch_size, 1, 1, -1)
+
 			#print "Produce time: %.2f ms" % ((time.time() - t)*1000)
 
-			yield X_batch, y_batch
+			if self.coates_features is not None:
+				yield {'input': X_batch, 'coates': coates_batch}, y_batch
+			else:
+				yield X_batch, y_batch
 
 	def __iter__(self):
 		import Queue
-		queue = Queue.Queue(maxsize=16)
+		queue = Queue.Queue(maxsize=8)
 		sentinel = object()  # guaranteed unique reference
 
 		# Define producer (putting items into queue)
@@ -142,8 +150,8 @@ class AugmentingParallelBatchIterator(ParallelBatchIterator):
 	"""
 	Randomly changes images in the batch. Behaviour can be defined in params.py.
 	"""
-	def __init__(self, keys, batch_size, std, mean, y_all = None):
-		super(AugmentingParallelBatchIterator, self).__init__(keys, batch_size, std, mean, y_all)
+	def __init__(self, keys, batch_size, std, mean, coates_features = None, y_all = None):
+		super(AugmentingParallelBatchIterator, self).__init__(keys, batch_size, std, mean, coates_features, y_all)
 
 		# Initialize augmenter
 		self.augmenter = Augmenter()
@@ -157,8 +165,8 @@ class AugmentingParallelBatchIterator(ParallelBatchIterator):
 		return Xbb, yb
 
 class TTABatchIterator(ParallelBatchIterator):
-	def __init__(self, keys, batch_size, std, mean, cv = False):
-		super(TTABatchIterator, self).__init__(keys, batch_size, std, mean, test = True, cv = cv)
+	def __init__(self, keys, batch_size, std, mean, coates_features = None, cv = False):
+		super(TTABatchIterator, self).__init__(keys, batch_size, std, mean, coates_features = coates_features,  test = True, cv = cv)
 
 		# Set center point
 		self.center_shift = np.array((PIXELS, PIXELS)) / 2. - 0.5
@@ -186,7 +194,7 @@ class TTABatchIterator(ParallelBatchIterator):
 						M = cv2.getRotationMatrix2D((self.center_shift[0], self.center_shift[1]), r, 1)
 
 						for i in range(Xb.shape[0]):
-							im = cv2.warpAffine(Xb[i].transpose(1, 2, 0), M, (PIXELS, PIXELS))
+							im = cv2.warpAffine(Xb[i].transpose(1, 2, 0), M, (params.PIXELS, params.PIXELS))
 
 							if f:
 								im = cv2.flip(im, 0)

@@ -33,10 +33,10 @@ def compute_validation_predictions(model, weights, validation_set):
 	y = util.load_labels()
 	keys = y.index.values
 
-	model.batch_iterator_predict = TTABatchIterator(keys, BATCH_SIZE, std, mean, cv = True)
+	model.batch_iterator_predict = TTABatchIterator(keys, params.BATCH_SIZE, std, mean, cv = True)
 	print "TTAs per image: %i, augmented batch size: %i" % (model.batch_iterator_predict.ttas, model.batch_iterator_predict.ttas * BATCH_SIZE)
 
-	padded_batches = ceil(validation_set.shape[0]/float(BATCH_SIZE))
+	padded_batches = ceil(validation_set.shape[0]/float(params.BATCH_SIZE))
 
 	pred = model.predict_proba(validation_set)
 	pred = pred.reshape(padded_batches, model.batch_iterator_predict.ttas, BATCH_SIZE)

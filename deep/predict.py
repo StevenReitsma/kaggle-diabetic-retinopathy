@@ -38,11 +38,11 @@ def predict(model_id, raw, validation):
 
 	keys = y.index.values
 
-	model.batch_iterator_predict = TTABatchIterator(keys, BATCH_SIZE, std, mean)
+	model.batch_iterator_predict = TTABatchIterator(keys, params.BATCH_SIZE, std, mean)
 	print "TTAs per image: %i, augmented batch size: %i" % (model.batch_iterator_predict.ttas, model.batch_iterator_predict.ttas * BATCH_SIZE)
 
 	if validation:
-		X_test = np.load(IMAGE_SOURCE + "/X_valid.npy")
+		X_test = np.load(params.IMAGE_SOURCE + "/X_valid.npy")
 	else:
 		X_test = np.arange(y.shape[0])
 
@@ -51,7 +51,7 @@ def predict(model_id, raw, validation):
 	pred = model.predict_proba(X_test)
 	pred = pred.reshape(padded_batches, model.batch_iterator_predict.ttas, BATCH_SIZE)
 	pred = np.mean(pred, axis = 1)
-	pred = pred.reshape(padded_batches * BATCH_SIZE)
+	pred = pred.reshape(padded_batches * params.BATCH_SIZE)
 
 	# Remove padded lines
 	pred = pred[:X_test.shape[0]]
@@ -60,15 +60,15 @@ def predict(model_id, raw, validation):
 	y.loc[keys] = pred[:, np.newaxis] # add axis for pd compatability
 
 	if validation:
-		filename = SAVE_URL + "/" + model_id + "/raw_predictions_validation.csv"
+		filename = params.SAVE_URL + "/" + model_id + "/raw_predictions_validation.csv"
 	else:
-		filename = SAVE_URL + "/" + model_id + "/raw_predictions.csv"
+		filename = params.SAVE_URL + "/" + model_id + "/raw_predictions.csv"
 
 	y.to_csv(filename)
 	print "Saved raw predictions to " + filename
 
 	if not raw and not validation:
-		W = np.load(SAVE_URL + "/" + model_id + "/optimal_thresholds.npy")
+		W = np.load(params.SAVE_URL + "/" + model_id + "/optimal_thresholds.npy")
 
 		pred = weighted_round(pred, W)
 
@@ -79,12 +79,12 @@ def predict(model_id, raw, validation):
 
 		y.loc[keys] = pred
 
-		y.to_csv(SAVE_URL + "/" + model_id + "/submission.csv")
+		y.to_csv(params.SAVE_URL + "/" + model_id + "/submission.csv")
 
 		print "Gzipping..."
 
-		if not ON_COMA:
-			call("gzip -c " + SAVE_URL + "/" + model_id + "/submission.csv > " + SAVE_URL + "/" + model_id + "/submission.csv.gz", shell=True)
+		if not params.ON_COMA:
+			call("gzip -c " + params.SAVE_URL + "/" + model_id + "/submission.csv > " + params.SAVE_URL + "/" + model_id + "/submission.csv.gz", shell=True)
 
 		print "Done! File saved to models/" + model_id + "/submission.csv"
 

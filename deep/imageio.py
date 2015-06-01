@@ -14,18 +14,18 @@ class ImageIO():
 
 
         if circularized:
-            mean = np.load(IMAGE_SOURCE + '/mean_c.npy').transpose(2,0,1).astype(np.float32)
-            std = np.load(IMAGE_SOURCE + '/std_c.npy').transpose(2,0,1).astype(np.float32)
+            mean = np.load(params.IMAGE_SOURCE + '/mean_c.npy').transpose(2,0,1).astype(np.float32)
+            std = np.load(params.IMAGE_SOURCE + '/std_c.npy').transpose(2,0,1).astype(np.float32)
         else:
-            mean = np.load(IMAGE_SOURCE + '/mean.npy').transpose(2,0,1).astype(np.float32)
-            std = np.load(IMAGE_SOURCE + '/std.npy').transpose(2,0,1).astype(np.float32)
+            mean = np.load(params.IMAGE_SOURCE + '/mean.npy').transpose(2,0,1).astype(np.float32)
+            std = np.load(params.IMAGE_SOURCE + '/std.npy').transpose(2,0,1).astype(np.float32)
 
 
         return mean, std
 
 
     def calc_variance(self, image_type="train"):
-        fnames = glob.glob(os.path.join(IMAGE_SOURCE, image_type, "*.jpeg"))
+        fnames = glob.glob(os.path.join(params.IMAGE_SOURCE, image_type, "*.jpeg"))
 
         nl = len(fnames)
 
@@ -54,8 +54,8 @@ class ImageIO():
         variance = M2/(n - 1)
         std = np.sqrt(variance)
 
-        np.save(IMAGE_SOURCE + '/std.npy', std)
-        np.save(IMAGE_SOURCE + '/mean.npy', mean)
+        np.save(params.IMAGE_SOURCE + '/std.npy', std)
+        np.save(params.IMAGE_SOURCE + '/mean.npy', mean)
 
         scipy.misc.imsave('mean.png', np.cast['int32'](mean))
         scipy.misc.imsave('std.png', np.cast['int32'](std))
@@ -102,8 +102,8 @@ class ImageIO():
         mean_circularized = sum(means) / len(means)
         std_circularized = sum(stds) / len(stds)
 
-        np.save(IMAGE_SOURCE + '/mean_c.npy', mean_circularized)
-        np.save(IMAGE_SOURCE + '/std_c.npy', std_circularized)
+        np.save(params.IMAGE_SOURCE + '/mean_c.npy', mean_circularized)
+        np.save(params.IMAGE_SOURCE + '/std_c.npy', std_circularized)
 
         scipy.misc.imsave('mean_c.png', np.cast['int32'](mean_circularized))
         scipy.misc.imsave('std_c.png', np.cast['int32'](std_circularized))

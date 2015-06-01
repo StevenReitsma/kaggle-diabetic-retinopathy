@@ -7,6 +7,7 @@ import util
 import scipy.misc
 import numpy as np
 from multiprocessing import Pool
+from multiprocessing.pool import ThreadPool
 
 import timeit
 
@@ -22,8 +23,11 @@ def read_and_augment(keys):
 
     return augmenter.augment(images)
 
-def augment_multithreaded(key_batches, n_threads=4):
-        p = Pool(n_threads)
+def augment_multithreaded(key_batches, n_threads=4, thread_pool=False):
+        if thread_pool:
+            p = ThreadPool(n_threads)
+        else:
+            p = Pool(n_threads)
         augmented = p.map(read_and_augment, key_batches)
         augmented = np.array(augmented)
 
@@ -31,7 +35,7 @@ def augment_singlethreaded(key_batches):
         augmented = map(read_and_augment, key_batches)
         augmented = np.array(augmented)
 
-def profile(subset=1000, multi=True, n_threads = 4, batch_size=64):
+def profile(subset=1000, multi=True, n_threads = 4, batch_size=64, thread_pool=False):
 
     # Load a bunch of imagenames
     y = util.load_labels()
@@ -42,7 +46,7 @@ def profile(subset=1000, multi=True, n_threads = 4, batch_size=64):
     batched_keys = util.chunks(keys, batch_size)
 
     if multi:
-        augment_multithreaded(batched_keys, n_threads=n_threads)
+        augment_multithreaded(batched_keys, n_threads=n_threads, thread_pool=thread_pool)
     else:
         augment_singlethreaded(batched_keys)
 

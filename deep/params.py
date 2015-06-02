@@ -32,9 +32,9 @@ class Params():
 		self.MODEL_ID = str(int(time.time()))
 		self.CIRCULARIZED_MEAN_STD = True
 
-		self.N_PRODUCERS = 3
+		self.N_PRODUCERS = cpu_count()
 
-		#Multithreads instead if false
+		#Multithreads instead if False
 		self.MULTIPROCESS = False
 
 		self.COATES_CENTROIDS = 500

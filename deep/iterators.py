@@ -101,13 +101,14 @@ class ParallelBatchIterator(object):
 			return X_batch, y_batch
 
 	def __iter__(self):
-		queue = JoinableQueue(maxsize=4) # guaranteed unique reference
+		queue = JoinableQueue(maxsize=6)
 
 		n_batches, job_queue = self.start_producers(queue)
 
 		# Run as consumer (read items from queue, in current thread)
 		for x in xrange(n_batches):
 			item = queue.get()
+			#print len(item[0]), queue.qsize(), "GET"
 			yield item
 			queue.task_done()
 
@@ -132,12 +133,13 @@ class ParallelBatchIterator(object):
 				task = jobs.get()
 
 				if task is None:
-					print id, " fully done!"
+					#print id, " fully done!"
 					break
 
-				#print "%d task" % id
+
 				result = self.gen(task)
 				result_queue.put(result)
+				#print "%d worker PUT" % id
 
 		#Start workers
 		for i in xrange(n_workers):
@@ -149,8 +151,6 @@ class ParallelBatchIterator(object):
 
 			p.daemon = True
 			p.start()
-
-		print "Started producers!"
 
 		#Add poison pills to queue (to signal workers to stop)
 		for i in xrange(n_workers):

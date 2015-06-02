@@ -1,7 +1,6 @@
 from params import *
 import numpy as np
 import cv2
-from scoop import shared, futures
 
 import itertools
 import time
@@ -47,14 +46,9 @@ class Augmenter():
                                     random_saturation=random_saturation,
                                     random_value=random_value)
 
-        if params.CONCURRENT_AUGMENTATION:
-            #FIXME: Currently not functional, can't mix and match multithreading
-            augmented = futures.map(augment_partial, Xb)
-            for index, im in enumerate(augmented):
-                Xbb[index] = im
-        else:
-            for i in xrange(Xb.shape[0]):
-                Xbb[i] = augment_partial(Xb[i])
+
+        for i in xrange(Xb.shape[0]):
+            Xbb[i] = augment_partial(Xb[i])
 
         return Xbb
 

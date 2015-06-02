@@ -1,5 +1,6 @@
 import time
 import socket
+from multiprocessing import cpu_count
 
 class Params():
 	def __init__(self):
@@ -23,14 +24,18 @@ class Params():
 		self.CHANNELS = 3
 		self.REGRESSION = True
 
-		self.SUBSET = 5000
+		self.SUBSET = 10000
 		self.AUGMENT = True
 		self.COLOR_AUGMENTATION = True
 		self.NETWORK_INPUT_TYPE = 'RGB'
 
 		self.MODEL_ID = str(int(time.time()))
 		self.CIRCULARIZED_MEAN_STD = True
-		self.CONCURRENT_AUGMENTATION = False
+
+		self.N_PRODUCERS = 3
+
+		#Multithreads instead if false
+		self.MULTIPROCESS = False
 
 		self.COATES_CENTROIDS = 500
 
@@ -43,5 +48,7 @@ class Params():
 					'saturation_range': (-0.1, 0.1),
 					'value_range': (-0.1, 0.1)
 		}
+
+
 
 params = Params()

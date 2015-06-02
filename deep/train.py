@@ -29,7 +29,6 @@ def fit(model_id = None):
 
     net.fit(X, y)
 
-# Imports are necessary for scoop as Theano gets confused if approached from 4 threads
 if __name__ == "__main__":
     import os
     import sys

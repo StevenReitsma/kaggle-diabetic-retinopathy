@@ -5,6 +5,10 @@ import scipy
 from augment import Augmenter
 import cv2
 
+from multiprocessing import Process, Queue, JoinableQueue
+from threading import Thread
+
+
 import util
 import time
 
@@ -58,74 +62,103 @@ class ParallelBatchIterator(object):
 		self.y = y
 		return self
 
-	def gen(self):
-		n_samples = self.X.shape[0]
-		bs = self.batch_size
+	def gen(self, indices):
 
-		for indices in util.chunks(self.X,bs):
-			#t = time.time()
+		key_batch = self.keys[indices]
 
-			key_batch = self.keys[indices]
+		cur_batch_size = len(indices)
 
-			cur_batch_size = len(indices)
+		X_batch = np.zeros((cur_batch_size, params.CHANNELS, params.PIXELS, params.PIXELS), dtype=np.float32)
+		y_batch = None
 
-			X_batch = np.zeros((cur_batch_size, params.CHANNELS, params.PIXELS, params.PIXELS), dtype=np.float32)
-			y_batch = None
+		if self.test:
+			subdir = "test"
+			y_batch = key_batch
+		else:
+			subdir = "train"
+			y_batch = self.y_all.loc[key_batch]['level']
+			y_batch = y_batch[:, np.newaxis].astype(np.float32)
 
-			if self.test:
-				subdir = "test"
-				y_batch = key_batch
-			else:
-				subdir = "train"
-				y_batch = self.y_all.loc[key_batch]['level']
-				y_batch = y_batch[:, np.newaxis].astype(np.float32)
+		if self.cv:
+			subdir = "train"
 
-			if self.cv:
-				subdir = "train"
+		# Read all images in the batch
+		for i, key in enumerate(key_batch):
+			X_batch[i] = scipy.misc.imread(params.IMAGE_SOURCE + "/" + subdir + "/" + key + ".jpeg").transpose(2, 0, 1)
 
-			# Read all images in the batch
-			for i, key in enumerate(key_batch):
-				X_batch[i] = scipy.misc.imread(params.IMAGE_SOURCE + "/" + subdir + "/" + key + ".jpeg").transpose(2, 0, 1)
+		# Transform the batch (augmentation, normalization, etc.)
+		X_batch, y_batch = self.transform(X_batch, y_batch)
 
-			# Transform the batch (augmentation, normalization, etc.)
-			X_batch, y_batch = self.transform(X_batch, y_batch)
+		#print "Produce time: %.2f ms" % ((time.time() - t)*1000)
 
-			#print "Produce time: %.2f ms" % ((time.time() - t)*1000)
+		if self.coates_features is not None:
+			# Get Coates
+			coates_batch = np.array([self.coates_features[k] for k in key_batch])
+			coates_batch = coates_batch.reshape(cur_batch_size, 1, 1, -1)
 
-			if self.coates_features is not None:
-				# Get Coates
-				coates_batch = np.array([self.coates_features[k] for k in key_batch])
-				coates_batch = coates_batch.reshape(cur_batch_size, 1, 1, -1)
-
-				yield {'input': X_batch, 'coates': coates_batch}, y_batch
-			else:
-				yield X_batch, y_batch
+			return {'input': X_batch, 'coates': coates_batch}, y_batch
+		else:
+			return X_batch, y_batch
 
 	def __iter__(self):
-		import Queue
-		queue = Queue.Queue(maxsize=8)
-		sentinel = object()  # guaranteed unique reference
+		queue = JoinableQueue(maxsize=4) # guaranteed unique reference
 
-		# Define producer (putting items into queue)
-		def producer():
-			for item in self.gen():
-				queue.put(item)
-				#print ">>>>> P:\t%i" % (queue.qsize())
-			queue.put(sentinel)
-
-		# Start producer (in a background thread)
-		import threading
-		thread = threading.Thread(target=producer)
-		thread.daemon = True
-		thread.start()
+		n_batches, job_queue = self.start_producers(queue)
 
 		# Run as consumer (read items from queue, in current thread)
-		item = queue.get()
-		while item is not sentinel:
+		for x in xrange(n_batches):
+			item = queue.get()
 			yield item
 			queue.task_done()
-			item = queue.get()
-			#print "C:\t%i" % (queue.qsize())
+
+		#queue.join() #Lock until queue is fully done
+		queue.close()
+		job_queue.close()
+
+
+
+	def start_producers(self, result_queue):
+		jobs = Queue()
+		n_workers = params.N_PRODUCERS
+		batch_count = 0
+
+		for batch in util.chunks(self.X,self.batch_size):
+			batch_count += 1
+			jobs.put(batch)
+
+		# Define producer (putting items into queue)
+		def produce(id, jobs, result_queue):
+			while True:
+				task = jobs.get()
+
+				if task is None:
+					print id, " fully done!"
+					break
+
+				#print "%d task" % id
+				result = self.gen(task)
+				result_queue.put(result)
+
+		#Start workers
+		for i in xrange(n_workers):
+
+			if params.MULTIPROCESS:
+				p = Process(target=produce, args=(i, jobs, result_queue))
+			else:
+				p = Thread(target=produce, args=(i, jobs, result_queue))
+
+			p.daemon = True
+			p.start()
+
+		print "Started producers!"
+
+		#Add poison pills to queue (to signal workers to stop)
+		for i in xrange(n_workers):
+			jobs.put(None)
+
+
+		return batch_count, jobs
+
 
 	def transform(self, Xb, yb):
 		Xbb = (Xb - self.mean) / self.std

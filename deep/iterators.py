@@ -5,7 +5,7 @@ import scipy
 from augment import Augmenter
 import cv2
 
-from multiprocessing import Process, Queue, JoinableQueue
+from multiprocessing import Process, Queue, JoinableQueue, Value
 from threading import Thread
 
 
@@ -123,38 +123,48 @@ class ParallelBatchIterator(object):
 		n_workers = params.N_PRODUCERS
 		batch_count = 0
 
-		for batch in util.chunks(self.X,self.batch_size):
+		#Flag used for keeping values in queue in order
+		last_queued_job = Value('i', -1)
+
+		for job_index, batch in enumerate(util.chunks(self.X,self.batch_size)):
 			batch_count += 1
-			jobs.put(batch)
+			jobs.put( (job_index,batch) )
 
 		# Define producer (putting items into queue)
-		def produce(id, jobs, result_queue):
+		def produce(id):
 			while True:
-				task = jobs.get()
+				job_index, task = jobs.get()
 
 				if task is None:
 					#print id, " fully done!"
 					break
 
-
 				result = self.gen(task)
-				result_queue.put(result)
-				#print "%d worker PUT" % id
+
+				while(True):
+					#My turn to add job done
+					if last_queued_job.value == job_index-1:
+
+						with last_queued_job.get_lock():
+							result_queue.put(result)
+							last_queued_job.value += 1
+							print id, " worker PUT", job_index
+							break
 
 		#Start workers
 		for i in xrange(n_workers):
 
 			if params.MULTIPROCESS:
-				p = Process(target=produce, args=(i, jobs, result_queue))
+				p = Process(target=produce, args=(i,))
 			else:
-				p = Thread(target=produce, args=(i, jobs, result_queue))
+				p = Thread(target=produce, args=(i,))
 
 			p.daemon = True
 			p.start()
 
 		#Add poison pills to queue (to signal workers to stop)
 		for i in xrange(n_workers):
-			jobs.put(None)
+			jobs.put((-1,None))
 
 
 		return batch_count, jobs

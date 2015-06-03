@@ -35,7 +35,7 @@ class Params():
 		self.N_PRODUCERS = cpu_count()
 
 		#Multithreads instead if False
-		self.MULTIPROCESS = False
+		self.MULTIPROCESS = True
 
 		self.COATES_CENTROIDS = 500
 

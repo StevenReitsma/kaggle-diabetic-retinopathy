@@ -13,11 +13,11 @@ class AdjustVariable(object):
 	def __call__(self, nn, train_history):
 		epoch = train_history[-1]['epoch']
 
-		stop = self.start * 10e-2
+		stop = self.start * 10e-2 * 2
 		stop2 = stop * 10e-3
 
 		ls = np.linspace(self.start, stop, 50)
-		ls2 = np.linspace(stop, stop2, 150)
+		ls2 = np.linspace(stop, stop2, 200)
 
 		if epoch <= 50:
 			new_value = float32(ls[epoch - 1])

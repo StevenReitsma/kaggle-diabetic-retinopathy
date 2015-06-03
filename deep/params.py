@@ -17,14 +17,14 @@ class Params():
 		self.PIXELS = 256
 
 		# Lower than 64 during training messes up something
-		self.BATCH_SIZE = 64
+		self.BATCH_SIZE = 128
 		self.START_LEARNING_RATE = 0.01
 		self.MOMENTUM = 0.9
 
 		self.CHANNELS = 3
 		self.REGRESSION = True
 
-		self.SUBSET = 10000
+		self.SUBSET = 0
 		self.AUGMENT = True
 		self.COLOR_AUGMENTATION = True
 		self.NETWORK_INPUT_TYPE = 'RGB'
@@ -32,10 +32,10 @@ class Params():
 		self.MODEL_ID = str(int(time.time()))
 		self.CIRCULARIZED_MEAN_STD = True
 
-		self.N_PRODUCERS = cpu_count()
+		self.N_PRODUCERS = cpu_count() if not self.ON_COMA else 3
 
 		#Multithreads instead if False
-		self.MULTIPROCESS = True
+		self.MULTIPROCESS = not self.ON_COMA
 
 		self.COATES_CENTROIDS = 500
 

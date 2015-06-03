@@ -3,10 +3,10 @@ from params import *
 from subprocess import call
 from iterators import TTABatchIterator
 from imageio import ImageIO
-import joblib
 import util
 from math import ceil
 import argparse
+import importlib
 
 # Define so that it can be pickled
 def quadratic_kappa(true, predicted):
@@ -25,8 +25,13 @@ def weighted_round(predictions, W):
 	return preds
 
 def predict(model_id, raw, validation):
-	model = joblib.load(SAVE_URL + "/" + model_id + "/model")
-	model.load_weights_from(SAVE_URL + "/" + model_id + "/best_weights")
+	d = importlib.import_module("nets.net_" + model_id)
+	model, X, y = d.define_net()
+
+	params.BATCH_SIZE = 32
+	params.N_PRODUCERS = 1
+
+	model.load_params_from(params.SAVE_URL + "/" + model_id + "/best_weights")
 
 	io = ImageIO()
 	mean, std = io.load_mean_std()
@@ -39,17 +44,17 @@ def predict(model_id, raw, validation):
 	keys = y.index.values
 
 	model.batch_iterator_predict = TTABatchIterator(keys, params.BATCH_SIZE, std, mean)
-	print "TTAs per image: %i, augmented batch size: %i" % (model.batch_iterator_predict.ttas, model.batch_iterator_predict.ttas * BATCH_SIZE)
+	print "TTAs per image: %i, augmented batch size: %i" % (model.batch_iterator_predict.ttas, model.batch_iterator_predict.ttas * params.BATCH_SIZE)
 
 	if validation:
 		X_test = np.load(params.IMAGE_SOURCE + "/X_valid.npy")
 	else:
 		X_test = np.arange(y.shape[0])
 
-	padded_batches = ceil(X_test.shape[0]/float(BATCH_SIZE))
+	padded_batches = ceil(X_test.shape[0]/float(params.BATCH_SIZE))
 
 	pred = model.predict_proba(X_test)
-	pred = pred.reshape(padded_batches, model.batch_iterator_predict.ttas, BATCH_SIZE)
+	pred = pred.reshape(padded_batches, model.batch_iterator_predict.ttas, params.BATCH_SIZE)
 	pred = np.mean(pred, axis = 1)
 	pred = pred.reshape(padded_batches * params.BATCH_SIZE)
 

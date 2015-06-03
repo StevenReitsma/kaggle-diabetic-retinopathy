@@ -1,6 +1,6 @@
 import numpy as np
 import scipy.optimize
-import joblib
+import importlib
 from imageio import ImageIO
 import util
 from iterators import TTABatchIterator
@@ -22,9 +22,14 @@ def load_labels(model_id):
 def load_validation_predictions(filename):
 	return np.load(filename)
 
-def compute_validation_predictions(model, weights, validation_set):
-	model = joblib.load(model)
-	model.load_weights_from(weights)
+def compute_validation_predictions(model_id, validation_set):
+	d = importlib.import_module("nets.net_" + model_id)
+	model, X, y = d.define_net()
+
+	params.BATCH_SIZE = 32
+	params.N_PRODUCERS = 1
+
+	model.load_params_from(params.SAVE_URL + "/" + model_id + "/best_weights")
 
 	io = ImageIO()
 	mean, std = io.load_mean_std()
@@ -34,14 +39,14 @@ def compute_validation_predictions(model, weights, validation_set):
 	keys = y.index.values
 
 	model.batch_iterator_predict = TTABatchIterator(keys, params.BATCH_SIZE, std, mean, cv = True)
-	print "TTAs per image: %i, augmented batch size: %i" % (model.batch_iterator_predict.ttas, model.batch_iterator_predict.ttas * BATCH_SIZE)
+	print "TTAs per image: %i, augmented batch size: %i" % (model.batch_iterator_predict.ttas, model.batch_iterator_predict.ttas * params.BATCH_SIZE)
 
 	padded_batches = ceil(validation_set.shape[0]/float(params.BATCH_SIZE))
 
 	pred = model.predict_proba(validation_set)
-	pred = pred.reshape(padded_batches, model.batch_iterator_predict.ttas, BATCH_SIZE)
+	pred = pred.reshape(padded_batches, model.batch_iterator_predict.ttas, params.BATCH_SIZE)
 	pred = np.mean(pred, axis = 1)
-	pred = pred.reshape(padded_batches * BATCH_SIZE)
+	pred = pred.reshape(padded_batches * params.BATCH_SIZE)
 
 	# Remove padded lines
 	pred = pred[:validation_set.shape[0]]
@@ -67,9 +72,10 @@ def optimize_thresholds(validation_predictions, true_labels, bins):
 	w_init = np.arange(bins) + 0.5
 
 	initial = f(w_init)
+	print "Initial kappa: %.5f" % -np.log10(initial)
 
 	# Use basinhopping because we're dealing with a highly non-continuous function
-	out = scipy.optimize.basinhopping(f, w_init, minimizer_kwargs = {"options": {"disp": True}}, stepsize = 0.1, T = 0.01, niter=10000, niter_success = 2500)
+	out = scipy.optimize.basinhopping(f, w_init, minimizer_kwargs = {"options": {"disp": True}}, stepsize = 0.1, T = 0.01, niter=1000, niter_success = 250)
 
 	return out, initial
 
@@ -92,7 +98,7 @@ if __name__ == "__main__":
 			validation_set = validation_set[:128]
 			true_labels = true_labels[:128]
 
-		validation_predictions = compute_validation_predictions(model = "models/" + args.model_id + "/model", weights = "models/" + args.model_id + "/best_weights", validation_set = validation_set)
+		validation_predictions = compute_validation_predictions(model_id = args.model_id, validation_set = validation_set)
 	
 	thresholds, initial = optimize_thresholds(validation_predictions, true_labels, bins = 5)
 

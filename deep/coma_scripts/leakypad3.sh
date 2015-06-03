@@ -4,7 +4,7 @@
 #SBATCH --gres=gpu:1
 
 # Set maximum run time to two days
-#SBATCH --time=2-00:00:00
+#SBATCH --time=3-00:00:00
 
 # Run script on long partition (lowest priority)
 #SBATCH --partition=long
@@ -19,7 +19,7 @@
 #SBATCH --cpus-per-task=4
 
 # Set name
-#SBATCH --job-name=JOB
+#SBATCH --job-name=ALL_NO_COATES_MULTI_LEAKY_PAD_001_SB
 
 # Set notification email
 #SBATCH --mail-user=s.reitsma@ru.nl
@@ -44,7 +44,7 @@ curl --silent -X POST --data-urlencode "payload={\"channel\": \"#coma-status\", 
 
 # Copy files from /vol/astro0 to /scratch over InfiniBand for local I/O access
 echo "Copying files from /vol/astro0 to /scratch"
-rsync -a --exclude="processed_512" --exclude="models" $REMOTE_DIR/* $SCRATCH_DIR/
+cp -R $REMOTE_DIR/* $SCRATCH_DIR/
 
 # Start script and disable output buffering
 echo "Running script"

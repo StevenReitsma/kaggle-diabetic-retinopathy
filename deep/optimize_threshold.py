@@ -26,10 +26,10 @@ def compute_validation_predictions(model_id, validation_set):
 	d = importlib.import_module("nets.net_" + model_id)
 	model, X, y = d.define_net()
 
-	params.BATCH_SIZE = 32
-	params.N_PRODUCERS = 1
-
 	model.load_params_from(params.SAVE_URL + "/" + model_id + "/best_weights")
+
+	# Lower batch size since TTA multiplies batch size by 16
+	params.BATCH_SIZE = 32
 
 	io = ImageIO()
 	mean, std = io.load_mean_std()

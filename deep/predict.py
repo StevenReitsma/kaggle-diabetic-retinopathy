@@ -29,7 +29,6 @@ def predict(model_id, raw, validation):
 	model, X, y = d.define_net()
 
 	params.BATCH_SIZE = 32
-	params.N_PRODUCERS = 1
 
 	model.load_params_from(params.SAVE_URL + "/" + model_id + "/best_weights")
 

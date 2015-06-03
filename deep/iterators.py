@@ -101,7 +101,7 @@ class ParallelBatchIterator(object):
 			return X_batch, y_batch
 
 	def __iter__(self):
-		queue = JoinableQueue(maxsize=6)
+		queue = JoinableQueue(maxsize=params.N_PRODUCERS*2)
 
 		n_batches, job_queue = self.start_producers(queue)
 
@@ -209,7 +209,7 @@ class TTABatchIterator(ParallelBatchIterator):
 		super(TTABatchIterator, self).__init__(keys, batch_size, std, mean, coates_features = coates_features,  test = True, cv = cv)
 
 		# Set center point
-		self.center_shift = np.array((PIXELS, PIXELS)) / 2. - 0.5
+		self.center_shift = np.array((params.PIXELS, params.PIXELS)) / 2. - 0.5
 		self.i = 0
 
 		self.rotations = [0, 45, 90, 135, 180, 225, 270, 315]
@@ -220,7 +220,11 @@ class TTABatchIterator(ParallelBatchIterator):
 		self.ttas = len(self.rotations) * len(self.flips) * len(self.hue) * len(self.saturation)
 
 	def transform(self, Xb, yb):
-		print "Batch %i/%i" % (self.i, self.X.shape[0]/self.batch_size)
+		if params.MULTIPROCESS:
+			print "Batch %i/%i" % (self.i, self.X.shape[0]/self.batch_size/params.N_PRODUCERS)
+		else:
+			print "Batch %i/%i" % (self.i, self.X.shape[0]/self.batch_size)
+			
 		self.i += 1
 
 		Xbb_list = []

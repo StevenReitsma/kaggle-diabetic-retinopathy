@@ -17,7 +17,7 @@ class Params():
 		self.PIXELS = 256
 
 		# Lower than 64 during training messes up something
-		self.BATCH_SIZE = 128
+		self.BATCH_SIZE = 64
 		self.START_LEARNING_RATE = 0.01
 		self.MOMENTUM = 0.9
 

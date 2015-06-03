@@ -8,29 +8,8 @@ import cv2
 from multiprocessing import Process, Queue, JoinableQueue, Value
 from threading import Thread
 
-
 import util
 import time
-
-class ScalingBatchIterator(BatchIterator):
-	"""
-	Scales images by subtracting mean and dividing by standard deviation.
-	Note: Does not shuffle data.
-	"""
-	def __init__(self, mean, std, batch_size):
-		super(ScalingBatchIterator, self).__init__(batch_size)
-
-		self.mean = mean
-		self.std = std
-
-	def transform(self, Xb, yb):
-		# Call super-class transform method. Currently this is just an identity function.
-		Xb, yb = super(ScalingBatchIterator, self).transform(Xb, yb)
-
-		# Normalize
-		Xbb = (Xb - self.mean) / self.std
-
-		return Xbb, yb
 
 class ParallelBatchIterator(object):
 	"""
@@ -148,7 +127,7 @@ class ParallelBatchIterator(object):
 						with last_queued_job.get_lock():
 							result_queue.put(result)
 							last_queued_job.value += 1
-							print id, " worker PUT", job_index
+							#print id, " worker PUT", job_index
 							break
 
 		#Start workers
@@ -224,7 +203,7 @@ class TTABatchIterator(ParallelBatchIterator):
 			print "Batch %i/%i" % (self.i, self.X.shape[0]/self.batch_size/params.N_PRODUCERS)
 		else:
 			print "Batch %i/%i" % (self.i, self.X.shape[0]/self.batch_size)
-			
+
 		self.i += 1
 
 		Xbb_list = []

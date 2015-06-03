@@ -81,10 +81,10 @@ def define_net():
 
         input_shape=(None, params.CHANNELS, params.PIXELS, params.PIXELS),
 
-        conv1_num_filters=32, conv1_filter_size=(8, 8), conv1_pad = 1, conv1_stride=(2, 2), pool1_pool_size=(2, 2), pool1_stride=(2, 2),
-        conv2_num_filters=64, conv2_filter_size=(5, 5), pool2_pool_size=(2, 2), pool2_stride=(2, 2),
-        conv3_num_filters=128, conv3_filter_size=(3, 3), pool3_pool_size=(2, 2), pool3_stride=(2, 2),
-        conv4_num_filters=256, conv4_filter_size=(3, 3), pool4_pool_size=(2, 2), pool4_stride=(2, 2),
+        conv1_num_filters=32, conv1_filter_size=(8, 8), conv1_pad = 3, conv1_stride=(2, 2), pool1_pool_size=(2, 2), pool1_stride=(2, 2),
+        conv2_num_filters=64, conv2_filter_size=(5, 5), conv2_pad = 2, pool2_pool_size=(2, 2), pool2_stride=(2, 2),
+        conv3_num_filters=128, conv3_filter_size=(3, 3), conv3_pad = 1, pool3_pool_size=(2, 2), pool3_stride=(2, 2),
+        conv4_num_filters=256, conv4_filter_size=(3, 3), conv4_pad = 1, pool4_pool_size=(2, 2), pool4_stride=(2, 2),
 
         hidden1_num_units=1024,
         hidden2_num_units=1024,

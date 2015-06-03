@@ -2,9 +2,6 @@ from params import *
 import numpy as np
 import cv2
 
-import itertools
-import time
-
 from functools import partial
 import util
 
@@ -14,10 +11,8 @@ class Augmenter():
         self.center_shift = np.array((params.PIXELS, params.PIXELS)) / 2. - 0.5
 
     def augment(self, Xb):
-        Xbb = np.zeros(Xb.shape, dtype=np.float32)
-
         # Random number 0-1 whether we flip or not
-        random_flip = np.random.randint(2)
+        random_flip = np.random.randint(2) == 1
 
         # Translation shift
         shift_x = np.random.uniform(*params.AUGMENTATION_PARAMS['translation_range'])
@@ -33,24 +28,28 @@ class Augmenter():
         random_saturation = np.random.uniform(*params.AUGMENTATION_PARAMS['saturation_range'])
         random_value = np.random.uniform(*params.AUGMENTATION_PARAMS['value_range'])
 
-        # Define affine matrix
-        # TODO: Should be able to incorporate flips directly instead of through an extra call
-        M = cv2.getRotationMatrix2D((self.center_shift[0], self.center_shift[1]), rotation, zoom)
-        M[0, 2] += shift_x
-        M[1, 2] += shift_y
+        return self.augment_with_params(Xb, shift_x, shift_y, rotation, random_flip, zoom, random_hue, random_saturation, random_value)
 
-        augment_partial = partial(augment_image,
-                                    M=M,
-                                    random_flip=random_flip,
-                                    random_hue=random_hue,
-                                    random_saturation=random_saturation,
-                                    random_value=random_value)
+    def augment_with_params(self, Xb, shift_x, shift_y, rotation, random_flip, zoom, hue, saturation, value):
+            Xbb = np.zeros(Xb.shape, dtype=np.float32)
 
+            # Define affine matrix
+            # TODO: Should be able to incorporate flips directly instead of through an extra call
+            M = cv2.getRotationMatrix2D((self.center_shift[0], self.center_shift[1]), rotation, zoom)
+            M[0, 2] += shift_x
+            M[1, 2] += shift_y
 
-        for i in xrange(Xb.shape[0]):
-            Xbb[i] = augment_partial(Xb[i])
+            augment_partial = partial(augment_image,
+                                        M=M,
+                                        random_flip=random_flip,
+                                        random_hue=hue,
+                                        random_saturation=saturation,
+                                        random_value=value)
 
-        return Xbb
+            for i in xrange(Xb.shape[0]):
+                Xbb[i] = augment_partial(Xb[i])
+
+            return Xbb
 
 # Augments a single image, singled out for easier profiling
 def augment_image(original_image, M=0, random_flip=0,
@@ -60,7 +59,7 @@ def augment_image(original_image, M=0, random_flip=0,
 
         # im is now RGB 01c
 
-        if random_flip == 1:
+        if random_flip:
             im = cv2.flip(im, 0)
 
         if params.COLOR_AUGMENTATION:
@@ -68,6 +67,3 @@ def augment_image(original_image, M=0, random_flip=0,
 
         # Back to c01
         return im.transpose(2, 0, 1)
-
-        #if i % self.batch_size - 1 == 0:
-            #scipy.misc.imsave('curimg.png', np.cast['int32'](Xbb[i]).transpose(1, 2, 0))

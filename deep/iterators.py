@@ -187,8 +187,9 @@ class TTABatchIterator(ParallelBatchIterator):
 	def __init__(self, keys, batch_size, std, mean, coates_features = None, cv = False):
 		super(TTABatchIterator, self).__init__(keys, batch_size, std, mean, coates_features = coates_features,  test = True, cv = cv)
 
-		# Set center point
-		self.center_shift = np.array((params.PIXELS, params.PIXELS)) / 2. - 0.5
+		# Initialize augmenter
+		self.augmenter = Augmenter()
+
 		self.i = 0
 
 		self.rotations = [0, 45, 90, 135, 180, 225, 270, 315]
@@ -212,17 +213,7 @@ class TTABatchIterator(ParallelBatchIterator):
 			for s in self.saturation:
 				for r in self.rotations:
 					for f in self.flips:
-						Xbb_new = np.zeros(Xb.shape, dtype=np.float32)
-
-						M = cv2.getRotationMatrix2D((self.center_shift[0], self.center_shift[1]), r, 1)
-
-						for i in range(Xb.shape[0]):
-							im = cv2.warpAffine(Xb[i].transpose(1, 2, 0), M, (params.PIXELS, params.PIXELS))
-
-							if f:
-								im = cv2.flip(im, 0)
-
-							Xbb_new[i] = util.hsv_augment(im, h, s, 0).transpose(2, 0, 1)
+						Xbb_new = self.augmenter.augment_with_params(Xb, 0, 0, r, f, 1, h, s, 0)
 
 						# Normalize
 						Xbb_new, _ = super(TTABatchIterator, self).transform(Xbb_new, None)

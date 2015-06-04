@@ -1,64 +1,68 @@
 # -*- coding: utf-8 -*-
-import random
-import preprocess as pre
-from scipy import misc
 import numpy as np
 
-def patch(image, n=0, patch_width=6):    
-    """
-       Patches an image (samples sub-images)
-    """
-    
-    patches = []
-    
-    xlength = len(image[0])
-    ylength = len(image)
-    patch_size = patch_width**2*3    
-    
-    if patch_width > xlength or patch_width > ylength:
-        raise Exception("Patchsize too big for given image")
 
-
-    # Max top left index from which patches are taken        
-    xindexmax = xlength - patch_width    
-    yindexmax = ylength - patch_width 
-
-    
-    nmaxpatches = (xindexmax+1) * (yindexmax+1)
-    
-    
-    
-    if n > nmaxpatches:
-        raise Exception("Impossible to extract this many patches from image")
+class ImPatch():
+    def __init__(self, image_shape = (256, 256), n = 0, patch_width = 6, stride = 1):
+        self.image_shape = image_shape
+        self.n = n
+        self.patch_width = patch_width
+        self.stride = stride
         
-    if n == 0:
-        n = nmaxpatches
+        xlength = image_shape[0]
+        ylength = image_shape[1]
+        self.patch_size = patch_width**2*3    
         
-    coords = [(x,y) for x in range(xindexmax+1) for y in range(yindexmax+1)]
-    patches = np.zeros((n,patch_size))
-    
-    # Shuffle list of coords
-    #random.shuffle(coords)
+        if patch_width > xlength or patch_width > ylength:
+            raise Exception("Patchsize too big for given image")
     
     
-    for i, coord in enumerate(coords):
-        if i >= n:
-            break
+        # Max top left index from which patches are taken        
+        xindexmax = xlength - patch_width    
+        yindexmax = ylength - patch_width 
         
-        x, y = coord
+        self.coords = [(x,y) for x in np.arange(0,xindexmax+1, stride) for y in np.arange(0, yindexmax+1, stride)]
+        
+        self.nmaxpatches = len(self.coords)
+            
+        
+        if self.n > self.nmaxpatches:
+            raise Exception("Impossible to extract this many patches from image")
+            
+        if n == 0:
+            self.n = self.nmaxpatches
+                    
+    
 
-        patch = image[x:(x+patch_width),y:(y+patch_width)]
-        np_patch = np.reshape(patch, (patch_size))
-        patches[i] = np_patch
+    def patch(self, image, patch_width=6, stride = 1):    
+        """
+           Patches an image (samples sub-images)
+        """
+            
+        patches = np.zeros((self.n,self.patch_size))
+        
+        # Shuffle list of coords
+        #random.shuffle(coords)
+        
+        
+        for i, coord in enumerate(self.coords):
+            if i >= self.n:
+                break
+            
+            x, y = coord
     
-    return patches
-    
-    
-def npatch(imagesize, patchsize):
-    return (imagesize + 1 - patchsize)**2
-    """
-        Maximum amount of patches extracted from image given size
-    """
+            patch = image[x:(x+patch_width),y:(y+patch_width)]
+            np_patch = np.reshape(patch, (self.patch_size))
+            patches[i] = np_patch
+        
+        return patches
+        
+        
+    def npatch(self):
+        return self.nmaxpatches
+        """
+            Maximum amount of patches extracted from image given size
+        """
     
    
          

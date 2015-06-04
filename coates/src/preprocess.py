@@ -70,22 +70,17 @@ def preprocess(path='../data/train',
     
     
     # Calculate some dimensions
-    patches_per_image = impatch.npatch(image_size, patch_size)
-    patches_total = n*patches_per_image
-    
+
     
     print "Patch size: {0}x{0} = {1}".format(patch_size, patch_size**2)
     print "Image size: {0}".format(image_size)
     print "Amount of images: {0}".format(n)
-    print "Patches per image: {0}".format(patches_per_image)
-    print "Patches total: {0}".format(patches_total)
+
     
     
     metadata = {}
     metadata['patch_size'] = patch_size
     metadata['image_size'] = image_size
-    metadata['patches_per_image'] = patches_per_image
-    metadata['patches_count'] = patches_total
     metadata['image_count'] = n
 
 

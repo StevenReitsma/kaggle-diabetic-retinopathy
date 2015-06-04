@@ -17,8 +17,11 @@ import time
 import numpy as np
 
 class PatchReader(object):
+    """"
+    Online patchreader
+    """
     
-    def __init__(self, filepath = '../data/train', stats_path = '../data/preprocessed/image_stats.stat', batch_size = -1):
+    def __init__(self, filepath = '../data/train', stats_path = '../data/preprocessed/image_stats.stat', batch_size = -1, stride = 1):
         image_stats = pickle.load(file(stats_path, 'rb'))
         self.image_size = image_stats['image_size']
         self.patch_size = image_stats['patch_size']
@@ -26,7 +29,9 @@ class PatchReader(object):
         self.std_image = image_stats['std_image']
         self.files = os.listdir(filepath)
         self.dir_path = filepath + '/'
-        self.n_patches_image = image_stats['patches_per_image'] #n patches per image
+        self.stride = stride
+        self.patchert = impatch.ImPatch(image_shape = (self.image_size, self.image_size), patch_width = self.patch_size, stride = self.stride)
+        self.n_patches_image = self.patchert.nmaxpatches #n patches per image
 
         if batch_size == -1:
             self.batch_size = self.n_patches_image
@@ -48,16 +53,15 @@ class PatchReader(object):
             image_path = self.files[self.current]
             image = misc.imread(self.dir_path + image_path)
             image = imutil.normalize(image, self.mean_image, self.std_image)
-            patches = impatch.patch(image)
+            patches = self.patchert.patch(image, patch_width = self.patch_size, stride = self.stride)
             
-            util.update_progress(0)
-            start = time.time()
+
+            
             for i, patch in enumerate(patches):
-                mean = np.mean(patches)
-                std = np.std(patches)
+                mean = np.mean(patch)
+                std = np.std(patch)
                 patches[i] = imutil.normalize(patch, mean, std)
-                util.update_progress(i/len(patches))
-            print 'time elapsed: ' + str(start-time.time())
+#                util.update_progress(i/len(patches))
             key = self.get_key(image_path)
             self.current+=1
             
@@ -67,8 +71,8 @@ class PatchReader(object):
         return name.split('.')[0]
 
 if __name__ == '__main__':
-    for i, (patches, key) in enumerate(PatchReader()):
-        print i, key
+    for i, (patches, key) in enumerate(PatchReader(stride = 2)):
+        print i, key, len(patches)
         
 
 

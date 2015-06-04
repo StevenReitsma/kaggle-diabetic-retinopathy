@@ -38,14 +38,18 @@ class Plotta(object):
 		self._do_async_request(url, payload)
 
 	def _do_sync_request(self, url, payload):
-		return unirest.post(url, headers = {"Accept": "application/json"}, params = payload)
+		try:
+			return unirest.post(url, headers = {"Accept": "application/json"}, params = payload)
+		except Exception, e:
+			return None
 
 	def _do_async_request(self, url, payload):
 		def empty_callback(response):
 			pass
 
+		# TODO currently errors when server offline
+		# Try catch doesn't work because of threading
 		unirest.post(url, headers = {"Accept": "application/json"}, params = payload, callback = empty_callback)
-
 
 class PlottaDiabetic(Plotta):
 	def __init__(self, job_name, hostname, port = 80):
@@ -59,7 +63,7 @@ class PlottaDiabetic(Plotta):
 	def start(self):
 		r = self.job_start(self.job_id, self.job_name, self.node_name)
 
-		if r.code in [404, 502, 503, 504]:
+		if r is None or r.code in [404, 502, 503, 504]:
 			# Server offline, disable plotta
 			print "Plotta server offline. Disabling plotta for this job."
 			self.disabled = True
@@ -67,6 +71,9 @@ class PlottaDiabetic(Plotta):
 			raise RuntimeError("Plotta user error ({0}). Message: {1}".format(r.code, r.body))
 		elif r.code in [500]:
 			raise RuntimeError("Plotta server error ({0}). Message: ".format(r.code, r.body))
+
+		if self.disabled:
+			return
 
 		self.new_stream("kappa", self.job_id, "Kappa", "Epochs", "Kappa")
 		self.new_stream("train_mse", self.job_id, "Train MSE", "Epochs", "Train MSE")

@@ -79,7 +79,7 @@ class ActivationCalculation():
         if not os.path.exists(file_path):
             os.makedirs(file_path)
         
-        patches = patch_reader.PatchReader(stride = 2)
+        patches = patch_reader.PatchReader(stride = 3)
         
        
 

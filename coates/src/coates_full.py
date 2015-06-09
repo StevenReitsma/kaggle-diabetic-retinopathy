@@ -6,8 +6,10 @@ Created on Fri May 29 09:59:17 2015
 """
 from __future__ import division
 from sklearn.externals import joblib
+from scipy import misc
+from scipy import stats
 import util
-
+import matplotlib.pyplot as plt
 import time
 import kmeans
 import patch_reader
@@ -19,24 +21,25 @@ import preprocess
 import train_classifier
 import numpy as np
 import kappa
+import impatch
 
 import activationCalculation
 
 def train_centroids(ncentroids = 500):
     km_trainer = kmeans.kMeansTrainer(nr_centroids = ncentroids)
-    start = time.time()
 
-    batches = patch_reader.PatchReader(stride = 6)
+    batches = patch_reader.PatchReader(filepath = '../data/train', stats_path = '../data/preprocessed/image_stats.stat', stride = 9)
     n_batches = batches.nbatches
     print "training centroids"
     util.update_progress(0)
+    
     for i, (batch, key) in enumerate(batches):
         km_trainer.next_batch(batch)
         util.update_progress(i/n_batches)
-    
-    end = time.time()
+
+
     util.update_progress(1)
-    print "Time elapsed: " + str((end-start))
+
     
     centroids = km_trainer.get_centroids()
     km_trainer.save_centroids(centroids)
@@ -46,7 +49,7 @@ def train_centroids(ncentroids = 500):
 def get_activations(centroids):
     "calculating activations"
     ac = activationCalculation.ActivationCalculation()
-    ac.pipeline(centroids)
+    ac.pipeline(centroids, file_path = '../data/train')
     print "done"
 
 def read_labels(file_path = '../data/trainLabels.csv'):
@@ -102,8 +105,8 @@ def cross_validate(labels, keys, n_centroids = 500):
     for i, p in enumerate(predictions):
         if p == test_labels[i]:
             n_correct+=1
-        else:
-            print "predicted: " + str(p) + " real label: " + test_labels[i]
+#        else:
+#            print "predicted: " + str(p) + " real label: " + test_labels[i]
     
     print "percent correct: " + str(n_correct/len(test_keys))
     print "Calcualting kappa: "
@@ -125,11 +128,47 @@ def load_activations(keys, n_centroids):
     return activations
     
     
-#    train_labels = 5
+def statistics():
+    
+    file_path = '../data/submission.csv'
+    f = open(file_path)
+    data = []
+    left = []
+    right = []
+    print 'read labels'
+    try:
+        reader = csv.reader(f)
+        reader.next()
+        for row in reader:
+            name = row[0].split('_')[0]
+            left.append(int(row[1]))
+            row = reader.next()
+            right.append(int(row[1]))
+#            data.append([left, right])
+            
+    finally:
+        f.close()
+        
+    print stats.pearsonr(left, right)
 
+#    print 'write to file'
+#    with open('labelstats.csv', 'wb') as f:
+#        writer = csv.writer(f)
+#        writer.writerow(['subject', 'left', 'right'])
+#        writer.writerows(data)
+        
+    
+    
 if __name__ == '__main__':
-    labels, keys = read_labels()
-    cross_validate(labels, keys)
+    statistics()    
+    
+#    preprocess.preprocess(image_size = 512)
+#    centroids = train_centroids()
+#    km = kmeans.kMeansTrainer()
+#    centroids = km.get_saved_centroids(500)
+#    get_activations(centroids)
+#    labels, keys = read_labels()
+#    cross_validate(labels, keys)
     
     
     

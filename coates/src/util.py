@@ -58,12 +58,23 @@ def plot_centroids(centroids, file_path = '../data/centroids/plots'):
         update_progress(i/len(centroids))
         im_size = np.sqrt(len(centroids[0])/3)
         centroid_matrix = np.reshape(centroid, (im_size,im_size,3))
+        centroid_matrix = np.uint8(centroid_matrix)
         plt.gray()
         plt.imsave(file_path + "centroid" + str(i) + ".png", centroid_matrix)
          
     update_progress(1.0)
     print "plotting done"
 
+def denormalize_centroids(centroids):
+    min_val = np.min(centroids)
+    centroids+= abs(min_val)
+    factor = 255/np.max(centroids)
+    centroids = centroids*factor
+    return centroids
+    
+        
+    
+    
 def load_metadata(filepath="../data/preprocessed/preprocessed_train.h5"):
     f = h5py.File(filepath)
     dset = f["data"]  

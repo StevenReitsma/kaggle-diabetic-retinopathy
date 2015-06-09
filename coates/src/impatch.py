@@ -34,7 +34,7 @@ class ImPatch():
                     
     
 
-    def patch(self, image, patch_width=6, stride = 1):    
+    def patch(self, image):    
         """
            Patches an image (samples sub-images)
         """
@@ -51,7 +51,7 @@ class ImPatch():
             
             x, y = coord
     
-            patch = image[x:(x+patch_width),y:(y+patch_width)]
+            patch = image[x:(x+self.patch_width),y:(y+self.patch_width)]
             np_patch = np.reshape(patch, (self.patch_size))
             patches[i] = np_patch
         

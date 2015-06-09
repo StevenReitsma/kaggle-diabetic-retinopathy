@@ -53,7 +53,7 @@ class PatchReader(object):
             image_path = self.files[self.current]
             image = misc.imread(self.dir_path + image_path)
             image = imutil.normalize(image, self.mean_image, self.std_image)
-            patches = self.patchert.patch(image, patch_width = self.patch_size, stride = self.stride)
+            patches = self.patchert.patch(image)
             
 
             

@@ -70,3 +70,4 @@ target/
 
 # Ignore background lit
 papers/
+*.csv

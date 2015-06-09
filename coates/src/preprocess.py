@@ -54,7 +54,7 @@ def preprocess(path='../data/train',
     """    
     
     
-    patch_size = kwargs.get('patch_size', 6)
+    patch_size = kwargs.get('patch_size', 9)
     image_size = kwargs.get('image_size', 256)
         
 
@@ -129,7 +129,7 @@ def extract_stats(filepaths, image_size):
     n = len(filepaths)    
     
     for i, filepath in enumerate(filepaths):
-        
+
         image = misc.imread(filepath)
         
         

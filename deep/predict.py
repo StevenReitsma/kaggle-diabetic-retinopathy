@@ -7,6 +7,9 @@ import util
 from math import ceil
 import argparse
 import importlib
+from lasagne.layers import get_output, InputLayer
+import theano
+from nolearn.lasagne import NeuralNet
 
 # Define so that it can be pickled
 def quadratic_kappa(true, predicted):
@@ -24,10 +27,40 @@ def weighted_round(predictions, W):
 
 	return preds
 
+def get_iter_func(model):
+	last_hidden = list(model.layers_.values())[-2]
+	output = list(model.layers_.values())[-1]
+
+	input_layers = [layer for layer in model.layers_.values()
+	            if isinstance(layer, InputLayer)]
+
+	func = get_output([last_hidden, output], None, deterministic=True)
+
+	X_inputs = [theano.Param(input_layer.input_var, name=input_layer.name)
+	                    for input_layer in input_layers]
+
+	return theano.function(
+            inputs=X_inputs,
+            outputs=func,
+            )
+
+def get_activations(X, batch_iterator, func):
+    activations = []
+
+    for Xb, yb in batch_iterator(X):
+        activations.append(NeuralNet.apply_batch_func(func, Xb))
+
+    return activations
+
 def predict(model_id, raw, validation, train):
+	params.DISABLE_CUDNN = True
+	params.MULTIPROCESS = False
+
 	d = importlib.import_module("nets.net_" + model_id)
 	model, X, y = d.define_net()
 	model.load_params_from(params.SAVE_URL + "/" + model_id + "/best_weights")
+
+	f = get_iter_func(model)
 
 	# Decrease batch size because TTA increases it 16-fold
 	# Uses too much memory otherwise
@@ -43,8 +76,9 @@ def predict(model_id, raw, validation, train):
 
 	keys = y.index.values
 
-	model.batch_iterator_predict = TTABatchIterator(keys, params.BATCH_SIZE, std, mean)
-	print "TTAs per image: %i, augmented batch size: %i" % (model.batch_iterator_predict.ttas, model.batch_iterator_predict.ttas * params.BATCH_SIZE)
+	#model.batch_iterator_predict = TTABatchIterator(keys, params.BATCH_SIZE, std, mean, cv = validation or train)
+	tta_bi = TTABatchIterator(keys, params.BATCH_SIZE, std, mean, cv = validation or train)
+	print "TTAs per image: %i, augmented batch size: %i" % (tta_bi.ttas, tta_bi.ttas * params.BATCH_SIZE)
 
 	if validation:
 		X_test = np.load(params.IMAGE_SOURCE + "/X_valid.npy")
@@ -55,25 +89,41 @@ def predict(model_id, raw, validation, train):
 
 	padded_batches = ceil(X_test.shape[0]/float(params.BATCH_SIZE))
 
-	pred = model.predict_proba(X_test)
-	pred = pred.reshape(padded_batches, model.batch_iterator_predict.ttas, params.BATCH_SIZE)
+	pred = get_activations(X_test, tta_bi, f)
+	
+	concat_preds = []
+
+	for batch_pred in pred:
+		hidden = batch_pred[0]
+		output = batch_pred[1]
+
+		concat = np.concatenate([output, hidden], axis = 1)
+
+		concat_preds.append(concat)
+
+	pred = np.vstack(concat_preds)
+	output_units = pred.shape[1]
+
+	#pred = model.predict_proba(X_test)
+	pred = pred.reshape(padded_batches, tta_bi.ttas, params.BATCH_SIZE, output_units)
 	pred = np.mean(pred, axis = 1)
-	pred = pred.reshape(padded_batches * params.BATCH_SIZE)
+	pred = pred.reshape(padded_batches * params.BATCH_SIZE, output_units)
 
 	# Remove padded lines
 	pred = pred[:X_test.shape[0]]
 
 	# Save unrounded
-	y.loc[keys] = pred[:, np.newaxis] # add axis for pd compatability
+	#y.loc[keys] = pred
 
 	if validation:
-		filename = params.SAVE_URL + "/" + model_id + "/raw_predictions_validation.csv"
+		filename = params.SAVE_URL + "/" + model_id + "/raw_predictions_validation.npy"
 	elif train:
-		filename = params.SAVE_URL + "/" + model_id + "/raw_predictions_train.csv"
+		filename = params.SAVE_URL + "/" + model_id + "/raw_predictions_train.npy"
 	else:
-		filename = params.SAVE_URL + "/" + model_id + "/raw_predictions_test.csv"
+		filename = params.SAVE_URL + "/" + model_id + "/raw_predictions_test.npy"
 
-	y.to_csv(filename)
+	np.save(filename, pred)
+	#y.to_csv(filename)
 	print "Saved raw predictions to " + filename
 
 	if not raw and not validation and not train:
@@ -100,7 +150,7 @@ def predict(model_id, raw, validation, train):
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description='Predict using optimized thresholds and write to file.')
 	parser.add_argument('--raw', dest='raw', action='store_true', help = 'ONLY store raw predictions, not rounded')
-	parser.add_argument('--train', dest='train', aciton='store_true', help = 'create predictions for training set, not for test set. automatically sets --raw as well.')
+	parser.add_argument('--train', dest='train', action='store_true', help = 'create predictions for training set, not for test set. automatically sets --raw as well.')
 	parser.add_argument('--validation', dest='validation', action='store_true', help = 'create predictions for validation set, not for test set. automatically sets --raw as well.')
 	parser.add_argument('model_id', metavar='model_id', type=str, help = 'timestamp ID for the model to optimize')
 

@@ -17,8 +17,9 @@ def quadratic_kappa(true, predicted):
     return kappa(true, predicted, weights='quadratic')
 
 def define_net_specific_parameters():
-    params.N_PRODUCERS = 3
     params.START_LEARNING_RATE = 0.005
+    params.N_PRODUCERS = 3
+    params.MULTIPROCESS = False
 
 def define_net():
     define_net_specific_parameters()

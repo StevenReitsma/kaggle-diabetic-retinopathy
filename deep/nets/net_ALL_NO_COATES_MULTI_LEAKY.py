@@ -18,6 +18,7 @@ def quadratic_kappa(true, predicted):
 
 def define_net_specific_parameters():
     params.N_PRODUCERS = 3
+    params.MULTIPROCESS = False
 
 def define_net():
     define_net_specific_parameters()

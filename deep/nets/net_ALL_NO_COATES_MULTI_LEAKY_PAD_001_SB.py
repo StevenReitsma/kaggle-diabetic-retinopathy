@@ -19,6 +19,7 @@ def quadratic_kappa(true, predicted):
 def define_net_specific_parameters():
     params.START_LEARNING_RATE = 0.005
     params.BATCH_SIZE = 64
+    params.MULTIPROCESS = False
 
 def define_net():
     define_net_specific_parameters()

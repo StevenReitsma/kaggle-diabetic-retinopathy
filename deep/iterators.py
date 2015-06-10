@@ -56,7 +56,9 @@ class ParallelBatchIterator(object):
 		else:
 			subdir = "train"
 			y_batch = self.y_all.loc[key_batch]['level']
-			y_batch = y_batch[:, np.newaxis].astype(np.float32)
+
+			if params.REGRESSION:
+				y_batch = y_batch[:, np.newaxis].astype(np.float32)
 
 		if self.cv:
 			subdir = "train"

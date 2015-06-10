@@ -44,7 +44,7 @@ curl --silent -X POST --data-urlencode "payload={\"channel\": \"#coma-status\", 
 
 # Copy files from /vol/astro0 to /scratch over InfiniBand for local I/O access
 echo "Copying files from /vol/astro0 to /scratch"
-cp -R $REMOTE_DIR/* $SCRATCH_DIR/
+rsync -a --exclude="processed_512" --exclude="models" $REMOTE_DIR/* $SCRATCH_DIR/
 
 # Start script and disable output buffering
 echo "Running script"

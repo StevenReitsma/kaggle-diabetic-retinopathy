@@ -3,6 +3,7 @@ import pandas as pd
 from params import *
 import os
 import cv2
+from skll.metrics import kappa
 
 def float32(k):
 	return np.cast['float32'](k)
@@ -70,3 +71,9 @@ def hsv_augment(im, hue, saturation, value):
 		im *= 255.
 
 	return im
+
+def quadratic_kappa(true, predicted):
+    if params.REGRESSION:
+        return kappa(true, predicted, weights='quadratic')
+    else:
+        return kappa(true, np.argmax(predicted, axis = 1), weights='quadratic')

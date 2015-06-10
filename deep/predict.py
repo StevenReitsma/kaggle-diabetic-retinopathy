@@ -24,18 +24,19 @@ def weighted_round(predictions, W):
 
 	return preds
 
-def predict(model_id, raw, validation):
+def predict(model_id, raw, validation, train):
 	d = importlib.import_module("nets.net_" + model_id)
 	model, X, y = d.define_net()
-
-	params.BATCH_SIZE = 32
-
 	model.load_params_from(params.SAVE_URL + "/" + model_id + "/best_weights")
+
+	# Decrease batch size because TTA increases it 16-fold
+	# Uses too much memory otherwise
+	params.BATCH_SIZE = 32
 
 	io = ImageIO()
 	mean, std = io.load_mean_std()
 
-	if validation:
+	if validation or train:
 		y = util.load_labels()
 	else:
 		y = util.load_sample_submission()
@@ -47,6 +48,8 @@ def predict(model_id, raw, validation):
 
 	if validation:
 		X_test = np.load(params.IMAGE_SOURCE + "/X_valid.npy")
+	elif train:
+		X_test = np.load(params.IMAGE_SOURCE + "/X_train.npy")
 	else:
 		X_test = np.arange(y.shape[0])
 
@@ -65,13 +68,15 @@ def predict(model_id, raw, validation):
 
 	if validation:
 		filename = params.SAVE_URL + "/" + model_id + "/raw_predictions_validation.csv"
+	elif train:
+		filename = params.SAVE_URL + "/" + model_id + "/raw_predictions_train.csv"
 	else:
-		filename = params.SAVE_URL + "/" + model_id + "/raw_predictions.csv"
+		filename = params.SAVE_URL + "/" + model_id + "/raw_predictions_test.csv"
 
 	y.to_csv(filename)
 	print "Saved raw predictions to " + filename
 
-	if not raw and not validation:
+	if not raw and not validation and not train:
 		W = np.load(params.SAVE_URL + "/" + model_id + "/optimal_thresholds.npy")
 
 		pred = weighted_round(pred, W)
@@ -95,9 +100,12 @@ def predict(model_id, raw, validation):
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description='Predict using optimized thresholds and write to file.')
 	parser.add_argument('--raw', dest='raw', action='store_true', help = 'ONLY store raw predictions, not rounded')
+	parser.add_argument('--train', dest='train', aciton='store_true', help = 'create predictions for training set, not for test set. automatically sets --raw as well.')
 	parser.add_argument('--validation', dest='validation', action='store_true', help = 'create predictions for validation set, not for test set. automatically sets --raw as well.')
 	parser.add_argument('model_id', metavar='model_id', type=str, help = 'timestamp ID for the model to optimize')
 
 	args = parser.parse_args()
 
-	predict(args.model_id, args.raw, args.validation)
+	assert not (args.train and args.validation)
+
+	predict(args.model_id, args.raw, args.validation, args.train)

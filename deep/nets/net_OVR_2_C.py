@@ -55,7 +55,7 @@ def define_net():
         # Half of coma does not support cuDNN, check whether we can use it on this node
         # If not, use cuda_convnet bindings
         from theano.sandbox.cuda.dnn import dnn_available
-        if dnn_available():
+        if dnn_available() and not params.DISABLE_CUDNN:
             from lasagne.layers import dnn
             Conv2DLayer = dnn.Conv2DDNNLayer
             MaxPool2DLayer = dnn.MaxPool2DDNNLayer

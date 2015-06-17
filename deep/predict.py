@@ -53,7 +53,7 @@ def get_activations(X, batch_iterator, func):
     return activations
 
 def predict(model_id, raw, validation, train):
-	params.DISABLE_CUDNN = True
+	#params.DISABLE_CUDNN = True
 	params.MULTIPROCESS = False
 
 	d = importlib.import_module("nets.net_" + model_id)

@@ -33,6 +33,7 @@ class Params():
 		self.CIRCULARIZED_MEAN_STD = True
 
 		self.N_PRODUCERS = cpu_count() if not self.ON_COMA else 3
+		self.DISABLE_CUDNN = False
 
 		#Multithreads instead if False
 		self.MULTIPROCESS = not self.ON_COMA

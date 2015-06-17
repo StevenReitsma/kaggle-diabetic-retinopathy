@@ -10,7 +10,7 @@ import stats
 from modelsaver import ModelSaver
 from params import *
 import numpy as np
-from custom_layers import MergeLayer
+from custom_layers import ConcatLayer, BatchConcatLayer
 from skll.metrics import kappa
 
 def quadratic_kappa(true, predicted):
@@ -63,7 +63,7 @@ def define_net():
         layers=[
             ('input', layers.InputLayer),
             ('input2', layers.InputLayer),
-            ('merge', layers.ConcatLayer),
+            ('merge', ConcatLayer),
 	    ('conv1', Conv2DLayer),
             ('pool1', MaxPool2DLayer),
             ('conv2', Conv2DLayer),
@@ -72,8 +72,7 @@ def define_net():
             ('pool3', MaxPool2DLayer),
             ('conv4', Conv2DLayer),
             ('pool4', MaxPool2DLayer),
-	    ('merge2', MergeLayer),
-#	    ('merge', layers.ConcatLayer),
+	    ('merge2', BatchConcatLayer),
             ('dropouthidden1', layers.DropoutLayer),
             ('hidden1', layers.DenseLayer),
             ('maxout1', Maxout),

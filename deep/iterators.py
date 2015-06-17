@@ -19,7 +19,7 @@ class ParallelBatchIterator(object):
 	keys sent as the second argument instead of the y_batch.
 	"""
 
-	def __init__(self, keys, batch_size, std, mean, coates_features = None, y_all = None, test = False, cv = False, n_eyes = 1):
+	def __init__(self, keys, batch_size, std, mean, coates_features = None, y_all = None, test = False, cv = False,n_eyes = 1):
 		self.batch_size = batch_size
 		self.n_eyes = n_eyes
 		self.keys = keys
@@ -69,19 +69,19 @@ class ParallelBatchIterator(object):
 
 		# Transform the batch (augmentation, normalization, etc.)
 		X_batch, y_batch = self.transform(X_batch, y_batch)
-
+		
 		#print "Produce time: %.2f ms" % ((time.time() - t)*1000)
-
 		if self.coates_features is not None:
 			# Get Coates
 			coates_batch = np.array([self.coates_features[k] for k in key_batch])
 			coates_batch = coates_batch.reshape(cur_batch_size, 1, 1, -1)
 
 			return {'input': X_batch, 'coates': coates_batch}, y_batch
-			
+		
 		elif self.n_eyes == 2:
 			# Find the other key pair
-			pair_batch = np.zeros((cur_batch_size, params.CHANNELS, params.PIXELS, params.PIXELS), dtype=np.float32)
+			
+			pair_batch = np.zeros((cur_batch_size, params.CHANNELS, params.PIXELS, params.PIXELS), dtype=np.float32)			
 			for i, key in enumerate(key_batch):
 				subject, side = key.split('_')
 				
@@ -92,7 +92,9 @@ class ParallelBatchIterator(object):
 				
 				pair_key = subject + '_' + other_side
 				pair_batch[i] = scipy.misc.imread(params.IMAGE_SOURCE + "/" + subdir + "/" + pair_key + ".jpeg").transpose(2, 0, 1)
-				
+			pair_batch, y_batch = self.transform(pair_batch, y_batch)
+			print pair_batch.shape
+			#return np.concatenate(X_batch,pair_batch), y_batch			
 			return {'input': X_batch, 'input2': pair_batch}, y_batch
 			
 					
@@ -190,7 +192,7 @@ class AugmentingParallelBatchIterator(ParallelBatchIterator):
 	"""
 	Randomly changes images in the batch. Behaviour can be defined in params.py.
 	"""
-	def __init__(self, keys, batch_size, std, mean, coates_features = None, y_all = None):
+	def __init__(self, keys, batch_size, std, mean, coates_features = None, y_all = None, n_eyes=1):
 		super(AugmentingParallelBatchIterator, self).__init__(keys, batch_size, std, mean, coates_features, y_all)
 
 		# Initialize augmenter

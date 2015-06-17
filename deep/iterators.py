@@ -64,8 +64,29 @@ class ParallelBatchIterator(object):
 			subdir = "train"
 
 		# Read all images in the batch
-		for i, key in enumerate(key_batch):
-			X_batch[i] = scipy.misc.imread(params.IMAGE_SOURCE + "/" + subdir + "/" + key + ".jpeg").transpose(2, 0, 1)
+		if self.n_eyes == 1:
+			for i, key in enumerate(key_batch):
+				X_batch[i] = scipy.misc.imread(params.IMAGE_SOURCE + "/" + subdir + "/" + key + ".jpeg").transpose(2, 0, 1)
+   
+   		elif self.n_eyes == 2:
+			# Find the other key pair (needs a batch size of even lenght!)
+			pair_batch = np.zeros((cur_batch_size, params.CHANNELS, params.PIXELS, params.PIXELS), dtype=np.float32)			
+			for i, key in enumerate(key_batch):
+				subject, side = key.split('_')
+				
+				if side == 'left':
+					other_side = 'right'
+				else:
+					other_side = 'left'
+				
+				pair_key = subject + '_' + other_side
+				X_batch[i] = scipy.misc.imread(params.IMAGE_SOURCE + "/" + subdir + "/" + key + ".jpeg").transpose(2, 0, 1)
+				pair_batch[i] = scipy.misc.imread(params.IMAGE_SOURCE + "/" + subdir + "/" + pair_key + ".jpeg").transpose(2, 0, 1)
+				
+			pair_batch, y_batch = self.transform(pair_batch, y_batch)
+			X_batch, y_batch = self.transform(X_batch, y_batch)
+			#return np.concatenate(X_batch,pair_batch), y_batch			
+			return {'input': X_batch, 'input2': pair_batch}, y_batch
 
 		# Transform the batch (augmentation, normalization, etc.)
 		X_batch, y_batch = self.transform(X_batch, y_batch)
@@ -78,23 +99,7 @@ class ParallelBatchIterator(object):
 
 			return {'input': X_batch, 'coates': coates_batch}, y_batch
 		
-		elif self.n_eyes == 2:
-			# Find the other key pair
-			
-			pair_batch = np.zeros((cur_batch_size, params.CHANNELS, params.PIXELS, params.PIXELS), dtype=np.float32)			
-			for i, key in enumerate(key_batch):
-				subject, side = key.split('_')
-				
-				if side == 'left':
-					other_side = 'right'
-				else:
-					other_side = 'left'
-				
-				pair_key = subject + '_' + other_side
-				pair_batch[i] = scipy.misc.imread(params.IMAGE_SOURCE + "/" + subdir + "/" + pair_key + ".jpeg").transpose(2, 0, 1)
-			pair_batch, y_batch = self.transform(pair_batch, y_batch)
-			#return np.concatenate(X_batch,pair_batch), y_batch			
-			return {'input': X_batch, 'input2': pair_batch}, y_batch
+
 			
 					
 			

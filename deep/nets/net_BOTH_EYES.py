@@ -107,7 +107,7 @@ def define_net():
         output_num_units=1 if params.REGRESSION else 5,
         output_nonlinearity=None if params.REGRESSION else nonlinearities.softmax,
 
-        update_learning_rate=theano.shared(util.float32(params.START_LEARNING_RATE)),
+        update_learning_rate=theano.shared(util.float32(0.005)),
         update_momentum=theano.shared(util.float32(params.MOMENTUM)),
         custom_score=('kappa', quadratic_kappa),
 
@@ -115,7 +115,7 @@ def define_net():
         batch_iterator_train=train_iterator,
         batch_iterator_test=test_iterator,
         on_epoch_finished=[
-            AdjustVariable('update_learning_rate', start=params.START_LEARNING_RATE),
+            AdjustVariable('update_learning_rate', start=0.005),
             stats.Stat(),
             ModelSaver()
         ],

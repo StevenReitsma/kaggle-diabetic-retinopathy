@@ -93,7 +93,6 @@ class ParallelBatchIterator(object):
 				pair_key = subject + '_' + other_side
 				pair_batch[i] = scipy.misc.imread(params.IMAGE_SOURCE + "/" + subdir + "/" + pair_key + ".jpeg").transpose(2, 0, 1)
 			pair_batch, y_batch = self.transform(pair_batch, y_batch)
-			print pair_batch.shape
 			#return np.concatenate(X_batch,pair_batch), y_batch			
 			return {'input': X_batch, 'input2': pair_batch}, y_batch
 			
@@ -193,7 +192,7 @@ class AugmentingParallelBatchIterator(ParallelBatchIterator):
 	Randomly changes images in the batch. Behaviour can be defined in params.py.
 	"""
 	def __init__(self, keys, batch_size, std, mean, coates_features = None, y_all = None, n_eyes=1):
-		super(AugmentingParallelBatchIterator, self).__init__(keys, batch_size, std, mean, coates_features, y_all)
+		super(AugmentingParallelBatchIterator, self).__init__(keys, batch_size, std, mean, coates_features, y_all, n_eyes=n_eyes)
 
 		# Initialize augmenter
 		self.augmenter = Augmenter()
@@ -207,8 +206,8 @@ class AugmentingParallelBatchIterator(ParallelBatchIterator):
 		return Xbb, yb
 
 class TTABatchIterator(ParallelBatchIterator):
-	def __init__(self, keys, batch_size, std, mean, coates_features = None, cv = False):
-		super(TTABatchIterator, self).__init__(keys, batch_size, std, mean, coates_features = coates_features,  test = True, cv = cv)
+	def __init__(self, keys, batch_size, std, mean, coates_features = None, cv = False, n_eyes = 1):
+		super(TTABatchIterator, self).__init__(keys, batch_size, std, mean, coates_features = coates_features,  test = True, cv = cv,n_eyes = n_eyes)
 
 		# Initialize augmenter
 		self.augmenter = Augmenter()

@@ -14,16 +14,16 @@ class AdjustVariable(object):
 		epoch = train_history[-1]['epoch']
 
 		stop = self.start * 10e-2 * 2
-		stop2 = stop * 10e-3
+		stop2 = stop * 10e-4 * 2
 
 		ls = np.linspace(self.start, stop, 50)
-		ls2 = np.linspace(stop, stop2, nn.max_epochs - 150)
+		ls2 = np.linspace(stop, stop2, nn.max_epochs - 100)
 
 		if epoch <= 50:
 			new_value = float32(ls[epoch - 1])
-		elif epoch <= 150:
+		elif epoch <= 100:
 			new_value = float32(ls[-1])
 		else:
-			new_value = float32(ls2[epoch - 1 - 150])
+			new_value = float32(ls2[epoch - 1 - 100])
 
 		getattr(nn, self.name).set_value(new_value)

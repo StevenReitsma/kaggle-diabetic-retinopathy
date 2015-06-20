@@ -13,127 +13,144 @@ import numpy as np
 from custom_layers import ConcatLayer, BatchConcatLayer
 from skll.metrics import kappa
 
+from lasagne.nonlinearities import LeakyRectify
+
 def quadratic_kappa(true, predicted):
-    return kappa(true, predicted, weights='quadratic')
+	return kappa(true, predicted, weights='quadratic')
+
+def define_net_specific_parameters():
+	params.N_PRODUCERS = 3
+	params.MULTIPROCESS = False
+	params.START_LEARNING_RATE = 0.005
 
 def define_net():
-    io = ImageIO()
+	define_net_specific_parameters()
 
-    # Read pandas csv labels
-    y = util.load_labels()
+	io = ImageIO()
 
-    if params.SUBSET is not 0:
-        y = y[:params.SUBSET]
+	# Read pandas csv labels
+	y = util.load_labels()
 
-    X = np.arange(y.shape[0])
+	if params.SUBSET is not 0:
+		y = y[:params.SUBSET]
 
-    mean, std = io.load_mean_std(circularized=params.CIRCULARIZED_MEAN_STD)
-    keys = y.index.values
+	X = np.arange(y.shape[0])
 
-    if params.AUGMENT:
-        train_iterator = AugmentingParallelBatchIterator(keys, params.BATCH_SIZE, std, mean, y_all = y,n_eyes=2)
-    else:
-        train_iterator = ParallelBatchIterator(keys, params.BATCH_SIZE, std, mean, y_all = y,n_eyes=2)
+	mean, std = io.load_mean_std(circularized=params.CIRCULARIZED_MEAN_STD)
+	keys = y.index.values
 
-    test_iterator = ParallelBatchIterator(keys, params.BATCH_SIZE, std, mean, y_all = y,n_eyes=2)
+	if params.AUGMENT:
+		train_iterator = AugmentingParallelBatchIterator(keys, params.BATCH_SIZE, std, mean, y_all = y,n_eyes=2)
+	else:
+		train_iterator = ParallelBatchIterator(keys, params.BATCH_SIZE, std, mean, y_all = y,n_eyes=2)
 
-    if params.REGRESSION:
-        y = util.float32(y)
-        y = y[:, np.newaxis]
+	test_iterator = ParallelBatchIterator(keys, params.BATCH_SIZE, std, mean, y_all = y,n_eyes=2)
 
-    if 'gpu' in theano.config.device:
-        # Half of coma does not support cuDNN, check whether we can use it on this node
-        # If not, use cuda_convnet bindings
-        from theano.sandbox.cuda.dnn import dnn_available
-        if dnn_available():
-            from lasagne.layers import dnn
-            Conv2DLayer = dnn.Conv2DDNNLayer
-            MaxPool2DLayer = dnn.MaxPool2DDNNLayer
-        else:
-            from lasagne.layers import cuda_convnet
-            Conv2DLayer = cuda_convnet.Conv2DCCLayer
-            MaxPool2DLayer = cuda_convnet.MaxPool2DCCLayer
-    else:
-        Conv2DLayer = layers.Conv2DLayer
-        MaxPool2DLayer = layers.MaxPool2DLayer
+	if params.REGRESSION:
+		y = util.float32(y)
+		y = y[:, np.newaxis]
 
-    Maxout = layers.pool.FeaturePoolLayer
+	if 'gpu' in theano.config.device:
+		# Half of coma does not support cuDNN, check whether we can use it on this node
+		# If not, use cuda_convnet bindings
+		from theano.sandbox.cuda.dnn import dnn_available
+		if dnn_available():
+			print "Using cuDNN"
+			from lasagne.layers import dnn
+			Conv2DLayer = dnn.Conv2DDNNLayer
+			MaxPool2DLayer = dnn.MaxPool2DDNNLayer
+		else:
+			from lasagne.layers import cuda_convnet
+			Conv2DLayer = cuda_convnet.Conv2DCCLayer
+			MaxPool2DLayer = cuda_convnet.MaxPool2DCCLayer
+	else:
+		Conv2DLayer = layers.Conv2DLayer
+		MaxPool2DLayer = layers.MaxPool2DLayer
 
-    net = NeuralNet(
-        layers=[
-            ('input', layers.InputLayer),
-            ('input2', layers.InputLayer),
-            ('merge', ConcatLayer),
-	    ('conv1', Conv2DLayer),
-            ('pool1', MaxPool2DLayer),
-            ('conv2', Conv2DLayer),
-            ('pool2', MaxPool2DLayer),
-            ('conv3', Conv2DLayer),
-            ('pool3', MaxPool2DLayer),
-            ('conv4', Conv2DLayer),
-            ('pool4', MaxPool2DLayer),
-	    ('merge2', BatchConcatLayer),
-            ('dropouthidden1', layers.DropoutLayer),
-            ('hidden1', layers.DenseLayer),
-            ('maxout1', Maxout),
-            ('dropouthidden2', layers.DropoutLayer),
-            ('hidden2', layers.DenseLayer),
-            ('maxout2', Maxout),
-            ('dropouthidden3', layers.DropoutLayer),
-            ('output', layers.DenseLayer),
-        ],
+	Maxout = layers.pool.FeaturePoolLayer
 
-        input_shape=(params.BATCH_SIZE, params.CHANNELS, params.PIXELS, params.PIXELS),
- 	input2_shape=(params.BATCH_SIZE, params.CHANNELS, params.PIXELS, params.PIXELS),
-	merge_incomings=['input','input2'],
-	merge_axis=0,	
-	
-        conv1_num_filters=32, conv1_filter_size=(8, 8), conv1_pad = 3, conv1_stride=(2, 2), pool1_pool_size=(2, 2), pool1_stride=(2, 2),
-        conv2_num_filters=64, conv2_filter_size=(5, 5), conv2_pad = 2, pool2_pool_size=(2, 2), pool2_stride=(2, 2),
-        conv3_num_filters=128, conv3_filter_size=(3, 3), conv3_pad = 1, pool3_pool_size=(2, 2), pool3_stride=(2, 2),
-        conv4_num_filters=256, conv4_filter_size=(3, 3), conv4_pad = 1, pool4_pool_size=(2, 2), pool4_stride=(2, 2),
+	net = NeuralNet(
+		layers=[
+			('input', layers.InputLayer),
+			('input2', layers.InputLayer),
+			('merge', ConcatLayer),
+			('conv1', Conv2DLayer),
+			('pool1', MaxPool2DLayer),
+			('conv2', Conv2DLayer),
+			('pool2', MaxPool2DLayer),
+			('conv3', Conv2DLayer),
+			('pool3', MaxPool2DLayer),
+			('conv4', Conv2DLayer),
+			('pool4', MaxPool2DLayer),
+			('merge2', BatchConcatLayer),
+			('dropouthidden1', layers.DropoutLayer),
+			('hidden1', layers.DenseLayer),
+			('maxout1', Maxout),
+			('dropouthidden2', layers.DropoutLayer),
+			('hidden2', layers.DenseLayer),
+			('maxout2', Maxout),
+			('dropouthidden3', layers.DropoutLayer),
+			('output', layers.DenseLayer),
+		],
 
-        hidden1_num_units=1024,
-        hidden2_num_units=1024,
-	merge2_nr_views=2,
-        dropouthidden1_p=0.5,
-        dropouthidden2_p=0.5,
-        dropouthidden3_p=0.5,
+		input_shape=(params.BATCH_SIZE, params.CHANNELS, params.PIXELS, params.PIXELS),
+		input2_shape=(params.BATCH_SIZE, params.CHANNELS, params.PIXELS, params.PIXELS),
+		merge_incomings=['input','input2'],
+		merge_axis=0,
 
-        maxout1_pool_size=2,
-        maxout2_pool_size=2,
+		conv1_num_filters=32, conv1_filter_size=(8, 8), conv1_pad = 3, conv1_stride=(2, 2), pool1_pool_size=(2, 2), pool1_stride=(2, 2),
+		conv2_num_filters=64, conv2_filter_size=(5, 5), conv2_pad = 2, pool2_pool_size=(2, 2), pool2_stride=(2, 2),
+		conv3_num_filters=128, conv3_filter_size=(3, 3), conv3_pad = 1, pool3_pool_size=(2, 2), pool3_stride=(2, 2),
+		conv4_num_filters=256, conv4_filter_size=(3, 3), conv4_pad = 1, pool4_pool_size=(2, 2), pool4_stride=(2, 2),
 
-        output_num_units=1 if params.REGRESSION else 5,
-        output_nonlinearity=None if params.REGRESSION else nonlinearities.softmax,
+		hidden1_num_units=1024,
+		hidden2_num_units=1024,
+		merge2_nr_views=2,
+		dropouthidden1_p=0.5,
+		dropouthidden2_p=0.5,
+		dropouthidden3_p=0.5,
 
-        update_learning_rate=theano.shared(util.float32(0.005)),
-        update_momentum=theano.shared(util.float32(params.MOMENTUM)),
-        custom_score=('kappa', quadratic_kappa),
+		maxout1_pool_size=2,
+		maxout2_pool_size=2,
 
-        regression=params.REGRESSION,
-        batch_iterator_train=train_iterator,
-        batch_iterator_test=test_iterator,
-        on_epoch_finished=[
-            AdjustVariable('update_learning_rate', start=0.005),
-            stats.Stat(),
-            ModelSaver()
-        ],
-        max_epochs=350,
-        verbose=1,
+		conv1_nonlinearity = LeakyRectify(0.1),
+        conv2_nonlinearity = LeakyRectify(0.1),
+        conv3_nonlinearity = LeakyRectify(0.1),
+        conv4_nonlinearity = LeakyRectify(0.1),
+        hidden1_nonlinearity = LeakyRectify(0.1),
+        hidden2_nonlinearity = LeakyRectify(0.1),
 
-        # Only relevant when create_validation_split = True
-        eval_size=0.1,
+		output_num_units=1 if params.REGRESSION else 5,
+		output_nonlinearity=None if params.REGRESSION else nonlinearities.softmax,
 
-        # Need to specify splits manually like indicated below!
-        create_validation_split=params.SUBSET>0,
-    )
+		update_learning_rate=theano.shared(util.float32(0.005)),
+		update_momentum=theano.shared(util.float32(params.MOMENTUM)),
+		custom_score=('kappa', quadratic_kappa),
 
-    # It is recommended to use the same training/validation split every model for ensembling and threshold optimization
-    #
-    # To set specific training/validation split:
-    net.X_train = np.load(params.IMAGE_SOURCE + "/X_train.npy")
-    net.X_valid = np.load(params.IMAGE_SOURCE + "/X_valid.npy")
-    net.y_train = np.load(params.IMAGE_SOURCE + "/y_train.npy")
-    net.y_valid = np.load(params.IMAGE_SOURCE + "/y_valid.npy")
+		regression=params.REGRESSION,
+		batch_iterator_train=train_iterator,
+		batch_iterator_test=test_iterator,
+		on_epoch_finished=[
+			AdjustVariable('update_learning_rate', start=0.005),
+			stats.Stat(),
+			ModelSaver()
+		],
+		max_epochs=350,
+		verbose=1,
 
-    return net, X, y
+		# Only relevant when create_validation_split = True
+		eval_size=0.1,
+
+		# Need to specify splits manually like indicated below!
+		create_validation_split=params.SUBSET>0,
+	)
+
+	# It is recommended to use the same training/validation split every model for ensembling and threshold optimization
+	#
+	# To set specific training/validation split:
+	net.X_train = np.load(params.IMAGE_SOURCE + "/X_train.npy")
+	net.X_valid = np.load(params.IMAGE_SOURCE + "/X_valid.npy")
+	net.y_train = np.load(params.IMAGE_SOURCE + "/y_train.npy")
+	net.y_valid = np.load(params.IMAGE_SOURCE + "/y_valid.npy")
+
+	return net, X, y

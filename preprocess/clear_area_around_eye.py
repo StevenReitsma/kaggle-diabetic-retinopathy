@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Sun May 24 01:50:46 2015
 
-@author: Tom
-"""
 from __future__ import division
 import numpy as np
 import cv2
 import copy
 import os
 import util
+import sys
 
 
 def clear_area_around_eye(size = 256, image_dir = 'I:/AI_for_an_eyes/test/test/', target_dir = 'I:/AI_for_an_eyes/test/test_zonder_meuk_256/'):
@@ -51,13 +48,11 @@ def clear_area_around_eye(size = 256, image_dir = 'I:/AI_for_an_eyes/test/test/'
             circles = np.uint16(np.around(circles))
             rad=0.0
         
-        
             for i in circles[0,:]:
             
                 if i[2]> rad:
                     rad = i[2]
                     circle = i
-               
                 
         
             circle_init = np.zeros(shape = cimg.shape, dtype = cimg.dtype)
@@ -71,8 +66,17 @@ def clear_area_around_eye(size = 256, image_dir = 'I:/AI_for_an_eyes/test/test/'
 
 if __name__ == '__main__':
     
-    image_dir = 'I:/AI_for_an_eyes/test/test/'
-    target_dir = 'I:/AI_for_an_eyes/test/test_zonder_meuk_259/'
+	args = sys.argv
+	
+	if len(args) < 3:
+		image_dir = 'I:/AI_for_an_eyes/test/test/'
+		target_dir = 'I:/AI_for_an_eyes/test/test_zonder_meuk_259/'
+	elif len(args) > 2:
+		image_dir = args[1]
+		target_dir = args[2]
+	else:
+		except "Failure in input arguments!", args
+
     size = 256
     
     clear_area_around_eye(size=size, image_dir=image_dir, target_dir = target_dir)

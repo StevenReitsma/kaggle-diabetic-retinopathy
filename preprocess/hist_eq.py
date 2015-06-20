@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Jun 19 15:01:23 2015
 
-@author: Inez
-"""
 from __future__ import division
 import numpy as np
 import cv2
@@ -48,11 +44,20 @@ def hist_eq(image_dir = 'test_hist/', target_dir = 'test_result_hist/', method =
 
 if __name__ == '__main__':
     
-    image_dir = 'test_hist/'
-    target_dir = 'test_result_hist/'
+	if len(args) < 4:
+		image_dir = 'test_hist/'
+		target_dir = 'test_result_hist/'
+		method = 'CLAHE_G' 
+		print "Using default params!"
+	elif len(args) > 3:
+		image_dir = args[1]
+		target_dir = args[2]
+		method = args[3].upper()
+	else:
+		except "Failure in input arguments!", args
+    
     #'CLAHE' for adaptive 
     #'CLAHE_G' only green channe
     #'HE' for normal hist equalization
-    method = 'CLAHE_G' 
     
     hist_eq(image_dir=image_dir, target_dir = target_dir, method = method)

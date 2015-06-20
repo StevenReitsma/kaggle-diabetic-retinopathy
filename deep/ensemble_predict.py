@@ -27,7 +27,7 @@ if __name__ == "__main__":
 		m_test.append(t)
 
 	model = xgb.Booster(model_file='ensembles/' + args.ensemble_model)
-	best_iteration = np.load('ensembles/' + args.ensemble_model + '_best_iteration.npy')
+	best_iteration = int(np.load('ensembles/' + args.ensemble_model + '_best_iteration.npy'))
 
 	y = util.load_sample_submission()
 	keys = y.index.values

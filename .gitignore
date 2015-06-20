@@ -9,6 +9,7 @@ kappa*.png
 
 deep/models/*
 deep/old_files/*
+deep/ensembles/*
 
 
 # Byte-compiled / optimized / DLL files

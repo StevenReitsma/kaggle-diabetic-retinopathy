@@ -29,14 +29,14 @@ def train_ensemble(activations_train, activations_valid, labels_train, labels_va
 		'min_child_weight': 15,
 		'max_delta_step': 0,
 		'subsample': 0.8,
-		'colsample_bytree': 0.7,
+		'colsample_bytree': 0.5,
 		'objective': 'reg:linear',
 		'eval_metric': 'rmse',
 		'num_class': 1,
 		'silent': 1,
 	}
 
-	n_iter = 300
+	n_iter = 220
 
 	def kappa_metric(preds, dtrain):
 	    labels = dtrain.get_label()

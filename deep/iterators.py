@@ -225,12 +225,13 @@ class TTABatchIterator(ParallelBatchIterator):
 		self.saturation = [0]
 
 		self.ttas = len(self.rotations) * len(self.flips) * len(self.hue) * len(self.saturation)
+		self.n_eyes = n_eyes
 
 	def transform(self, Xb, yb):
 		if params.MULTIPROCESS:
 			print "Batch %i/%i" % (self.i, self.X.shape[0]/self.batch_size/params.N_PRODUCERS)
 		else:
-			print "Batch %i/%i" % (self.i, self.X.shape[0]/self.batch_size)
+			print "Batch %i/%i (%.2f%%)" % (self.i, self.X.shape[0]/self.batch_size*self.n_eyes, float(self.i) / (self.X.shape[0] / self.batch_size * self.n_eyes) * 100)
 
 		self.i += 1
 

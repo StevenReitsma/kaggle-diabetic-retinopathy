@@ -64,7 +64,8 @@ def predict(model_id, raw, validation, train):
 
 	# Decrease batch size because TTA increases it 16-fold
 	# Uses too much memory otherwise
-	params.BATCH_SIZE = 32
+	params.BATCH_SIZE = 16
+	n_eyes = 2
 
 	io = ImageIO()
 	mean, std = io.load_mean_std()
@@ -77,8 +78,8 @@ def predict(model_id, raw, validation, train):
 	keys = y.index.values
 
 	#model.batch_iterator_predict = TTABatchIterator(keys, params.BATCH_SIZE, std, mean, cv = validation or train)
-	tta_bi = TTABatchIterator(keys, params.BATCH_SIZE, std, mean, cv = validation or train)
-	print "TTAs per image: %i, augmented batch size: %i" % (tta_bi.ttas, tta_bi.ttas * params.BATCH_SIZE)
+	tta_bi = TTABatchIterator(keys, params.BATCH_SIZE, std, mean, cv = validation or train, n_eyes = n_eyes)
+	print "TTAs per image: %i, augmented batch size: %i" % (tta_bi.ttas, tta_bi.ttas * params.BATCH_SIZE * n_eyes)
 
 	if validation:
 		X_test = np.load(params.IMAGE_SOURCE + "/X_valid.npy")

@@ -44,7 +44,7 @@ def hist_eq(image_dir = 'test_hist/', target_dir = 'test_result_hist/', method =
     util.update_progress(1)
     
 def process_image(image_path, target_dir, method = 'CLAHE'):
-    if not os.apth.exists(target_dir):
+    if not os.path.exists(target_dir):
         os.makedirs(target_dir)
         
     img = cv2.imread(image_path,1)

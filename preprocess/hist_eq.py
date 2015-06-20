@@ -6,6 +6,7 @@ import cv2
 import os
 import util
 import glob
+import sys
 
 
 def hist_eq(image_dir = 'test_hist/', target_dir = 'test_result_hist/', method = 'CLAHE'):
@@ -54,7 +55,7 @@ if __name__ == '__main__':
 		target_dir = args[2]
 		method = args[3].upper()
 	else:
-		except "Failure in input arguments!", args
+		throw "Failure in input arguments! " + args
     
     #'CLAHE' for adaptive 
     #'CLAHE_G' only green channe

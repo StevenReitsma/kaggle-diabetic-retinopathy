@@ -27,7 +27,7 @@ def process_image(image_path = 'I:/AI_for_an_eyes/test/test_picca.jpeg', target_
         os.makedirs(target_dir)
 
 
-    image_name = image_path.split('/')[-1]
+    image_name = image_path.split('/')[-1].split('\\')[-1]
 
 
     img = cv2.imread(image_path,1)

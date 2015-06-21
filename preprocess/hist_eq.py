@@ -42,6 +42,30 @@ def hist_eq(image_dir = 'test_hist/', target_dir = 'test_result_hist/', method =
         util.update_progress(j/list_length)
         
     util.update_progress(1)
+    
+def process_image(image_path, target_dir, method = 'CLAHE'):
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
+        
+    img = cv2.imread(image_path,1)
+    # Use file name only, without .jpeg
+    image_name = image_path.split('/')[-1][:-5]
+    
+    b,g,r = cv2.split(img)
+    if method == 'HE':
+        cv2.equalizeHist(b,b)
+        cv2.equalizeHist(g,g)
+        cv2.equalizeHist(r,r)
+    else:
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+        clahe.apply(g,g)
+        if not method =='CLAHE_G':
+            clahe.apply(b,b)
+            clahe.apply(r,r)
+            
+    recombined = cv2.merge((b,g,r))
+    cv2.imwrite(target_dir + image_name + method +'.jpeg', recombined)
+
 
 if __name__ == '__main__':
     

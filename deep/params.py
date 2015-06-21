@@ -35,6 +35,8 @@ class Params():
 		self.N_PRODUCERS = cpu_count() if not self.ON_COMA else 3
 		self.DISABLE_CUDNN = False
 
+		self.PLOTTA_ENABLED = True
+
 		#Multithreads instead if False
 		self.MULTIPROCESS = not self.ON_COMA
 

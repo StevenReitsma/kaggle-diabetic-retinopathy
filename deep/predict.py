@@ -52,7 +52,7 @@ def get_activations(X, batch_iterator, func):
 
     return activations
 
-def predict(model_id, raw, validation, train):
+def predict(model_id, raw, validation, train, average_over_eyes):
 	#params.DISABLE_CUDNN = True
 	params.MULTIPROCESS = False
 
@@ -99,6 +99,11 @@ def predict(model_id, raw, validation, train):
 		output = batch_pred[1]
 
 		concat = np.concatenate([output, hidden], axis = 1)
+
+		#if average_over_eyes:
+			#means = concat.reshape(concat.shape[0] / 2, 2, concat.shape[1])
+			#means = means.mean(axis = 1)
+			#means = np.repeat(means, 2, axis = 0)
 
 		concat_preds.append(concat)
 
@@ -153,10 +158,11 @@ if __name__ == "__main__":
 	parser.add_argument('--raw', dest='raw', action='store_true', help = 'ONLY store raw predictions, not rounded')
 	parser.add_argument('--train', dest='train', action='store_true', help = 'create predictions for training set, not for test set. automatically sets --raw as well.')
 	parser.add_argument('--validation', dest='validation', action='store_true', help = 'create predictions for validation set, not for test set. automatically sets --raw as well.')
+	parser.add_argument('--avg', dest='avg', action='store_true', help = 'when using bilateral networks, average over the eyes, having correlation = 1.0 as result.')
 	parser.add_argument('model_id', metavar='model_id', type=str, help = 'timestamp ID for the model to optimize')
 
 	args = parser.parse_args()
 
 	assert not (args.train and args.validation)
 
-	predict(args.model_id, args.raw, args.validation, args.train)
+	predict(args.model_id, args.raw, args.validation, args.train, args.avg)

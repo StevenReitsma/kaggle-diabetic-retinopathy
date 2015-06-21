@@ -10,7 +10,7 @@
 #SBATCH --partition=long
 
 # Reserve memory per node
-#SBATCH --mem=8G
+#SBATCH --mem=10G
 
 # Reserve one node
 #SBATCH --nodes=1

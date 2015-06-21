@@ -37,6 +37,10 @@ class ImageIO():
         for fileName in fnames:
 
             image = imread(fileName, as_grey=False)
+            if hasattr(mean, 'shape') and image.shape != mean.shape:
+                print "Shape mismatch, ignoring image %s" % fileName
+                i += 1
+                continue
 
             n = n + 1
             delta = image - mean
@@ -110,5 +114,6 @@ class ImageIO():
 
 
 if __name__ == "__main__":
+    params.IMAGE_SOURCE = "/vol/astro0/external_users/sreitsma/processed_noisy"
     var, mean = ImageIO().calc_variance()
     ImageIO().circularize_mean_std()

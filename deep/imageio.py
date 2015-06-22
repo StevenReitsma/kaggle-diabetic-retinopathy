@@ -115,6 +115,5 @@ class ImageIO():
 
 
 if __name__ == "__main__":
-    params.IMAGE_SOURCE = "/vol/astro0/external_users/sreitsma/processed_noisy"
     var, mean = ImageIO().calc_variance()
     ImageIO().circularize_mean_std()

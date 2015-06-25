@@ -58,7 +58,7 @@ def train_ensemble(activations_train, activations_valid, labels_train, labels_va
 		'silent': 1,
 	}
 
-	n_iter = 260
+	n_iter = 300
 
 	def kappa_metric(preds, dtrain):
 	    labels = dtrain.get_label()

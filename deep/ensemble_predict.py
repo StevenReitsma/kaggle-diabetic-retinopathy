@@ -4,9 +4,14 @@ import argparse
 
 from params import *
 import util
+from ensemble_train import bilateralize
 
-def predict_ensemble(model, activations_test, best_iteration):
+def predict_ensemble(model, activations_test, best_iteration, bilateral):
 	concat_test = np.concatenate(activations_test, axis = 1)
+
+	if bilateral:
+		# Prepare bilateral information
+		concat_test = bilateralize(concat_test)
 
 	dtest = xgb.DMatrix(concat_test)
 
@@ -14,6 +19,7 @@ def predict_ensemble(model, activations_test, best_iteration):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description='Predict ensemble using XGBoost.')
+	parser.add_argument('--bilateral', dest='bilateral', action='store_true', help = "whether to incorporate bilateral features.")
 	parser.add_argument('ensemble_model', metavar='ensemble_model', type=str, help = 'file to use as ensemble model.')
 	parser.add_argument('model_ids', metavar='model_ids', type=str, nargs='+', help = 'list of models to ensemble.')
 
@@ -32,7 +38,7 @@ if __name__ == "__main__":
 	y = util.load_sample_submission()
 	keys = y.index.values
 
-	preds = predict_ensemble(model, m_test, best_iteration)
+	preds = predict_ensemble(model, m_test, best_iteration, args.bilateral)
 	preds = np.round(preds[:, np.newaxis])
 
 	y.loc[keys] = preds

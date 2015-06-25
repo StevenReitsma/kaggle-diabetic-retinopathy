@@ -5,14 +5,33 @@ from skll.metrics import kappa
 
 from params import *
 
-def train_ensemble(activations_train, activations_valid, labels_train, labels_valid, filename, noeval):
+def bilateralize(data):
+	res = data.reshape(data.shape[0] / 2, 2, data.shape[1])
+	first = np.concatenate((res[:, 0, :], res[:, 1, :]), axis = 1)
+	second = np.concatenate((res[:, 1, :], res[:, 0, :]), axis = 1)
+
+	con = np.dstack((first, second)).transpose(0, 2, 1)
+	return con.reshape(data.shape[0], data.shape[1] * 2)
+
+def train_ensemble(activations_train, activations_valid, labels_train, labels_valid, filename, noeval, bilateral):
 	# Concatenate the activations of all models together
 	concat_train = np.concatenate(activations_train, axis = 1)
 	concat_valid = np.concatenate(activations_valid, axis = 1)
 
+	if bilateral:
+		# Put last from valid at start of train
+		# Our split of training/validation wasn't on an even number, so this is needed for the bilateral information
+		# Gives some very minor leakage
+		concat_train = np.concatenate(([concat_valid[-1, :]], concat_train), axis = 0)
+		concat_valid = concat_valid[:-1, :]
+
+		# Prepare bilateral information
+		concat_train = bilateralize(concat_train)
+		concat_valid = bilateralize(concat_valid)
+
 	if noeval:
-		concat = np.concatenate([concat_train, concat_valid], axis = 0)
-		labels_concat = np.concatenate([labels_train, labels_valid], axis = 0)
+		concat = np.concatenate([concat_valid, concat_train], axis = 0)
+		labels_concat = np.concatenate([labels_valid, labels_train], axis = 0)
 		dtrain = xgb.DMatrix(concat, labels_concat)
 		evals = [(dtrain, 'train')]
 	else:
@@ -57,6 +76,7 @@ def train_ensemble(activations_train, activations_valid, labels_train, labels_va
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description='Train ensemble using XGBoost.')
 	parser.add_argument('--noeval', dest='noeval', action='store_true', help = "don't evaluate, use entire training and validation set for training.")
+	parser.add_argument('--bilateral', dest='bilateral', action='store_true', help = "whether to incorporate bilateral features.")
 	parser.add_argument('output', metavar='output', type=str, help = 'file to output the ensemble model to.')
 	parser.add_argument('model_ids', metavar='model_ids', type=str, nargs='+', help = 'list of models to ensemble.')
 
@@ -77,4 +97,4 @@ if __name__ == "__main__":
 	y_train = np.load(params.IMAGE_SOURCE + "/y_train.npy")
 	y_valid = np.load(params.IMAGE_SOURCE + "/y_valid.npy")
 
-	model, best_iteration = train_ensemble(m_train, m_valid, y_train, y_valid, args.output, args.noeval)
+	model, best_iteration = train_ensemble(m_train, m_valid, y_train, y_valid, args.output, args.noeval, args.bilateral)

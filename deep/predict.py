@@ -52,8 +52,8 @@ def get_activations(X, batch_iterator, func):
 
     return activations
 
-def predict(model_id, raw, validation, train, average_over_eyes):
-	#params.DISABLE_CUDNN = True
+def predict(model_id, raw, validation, train, n_eyes, average_over_eyes):
+	params.DISABLE_CUDNN = True
 	params.MULTIPROCESS = False
 
 	d = importlib.import_module("nets.net_" + model_id)
@@ -64,8 +64,7 @@ def predict(model_id, raw, validation, train, average_over_eyes):
 
 	# Decrease batch size because TTA increases it 16-fold
 	# Uses too much memory otherwise
-	params.BATCH_SIZE = 16
-	n_eyes = 2
+	params.BATCH_SIZE = 8
 
 	io = ImageIO()
 	mean, std = io.load_mean_std()
@@ -77,7 +76,6 @@ def predict(model_id, raw, validation, train, average_over_eyes):
 
 	keys = y.index.values
 
-	#model.batch_iterator_predict = TTABatchIterator(keys, params.BATCH_SIZE, std, mean, cv = validation or train)
 	tta_bi = TTABatchIterator(keys, params.BATCH_SIZE, std, mean, cv = validation or train, n_eyes = n_eyes)
 	print "TTAs per image: %i, augmented batch size: %i" % (tta_bi.ttas, tta_bi.ttas * params.BATCH_SIZE * n_eyes)
 
@@ -159,10 +157,11 @@ if __name__ == "__main__":
 	parser.add_argument('--train', dest='train', action='store_true', help = 'create predictions for training set, not for test set. automatically sets --raw as well.')
 	parser.add_argument('--validation', dest='validation', action='store_true', help = 'create predictions for validation set, not for test set. automatically sets --raw as well.')
 	parser.add_argument('--avg', dest='avg', action='store_true', help = 'when using bilateral networks, average over the eyes, having correlation = 1.0 as result.')
+	parser.add_argument('--bilateral', dest='bilateral', action='store_true', help = 'the network was trained bilaterally.')
 	parser.add_argument('model_id', metavar='model_id', type=str, help = 'timestamp ID for the model to optimize')
 
 	args = parser.parse_args()
 
 	assert not (args.train and args.validation)
 
-	predict(args.model_id, args.raw, args.validation, args.train, args.avg)
+	predict(args.model_id, args.raw, args.validation, args.train, 2 if args.bilateral else 1, args.avg)

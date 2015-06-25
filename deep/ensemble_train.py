@@ -21,9 +21,12 @@ def train_ensemble(activations_train, activations_valid, labels_train, labels_va
 	if bilateral:
 		# Put last from valid at start of train
 		# Our split of training/validation wasn't on an even number, so this is needed for the bilateral information
-		# Gives some very minor leakage
 		concat_train = np.concatenate(([concat_valid[-1, :]], concat_train), axis = 0)
 		concat_valid = concat_valid[:-1, :]
+
+		# Do the same for the labels
+		labels_train = np.concatenate(([labels_valid[-1]], labels_train), axis = 0)
+		labels_valid = labels_valid[:-1]
 
 		# Prepare bilateral information
 		concat_train = bilateralize(concat_train)
@@ -55,7 +58,7 @@ def train_ensemble(activations_train, activations_valid, labels_train, labels_va
 		'silent': 1,
 	}
 
-	n_iter = 220
+	n_iter = 260
 
 	def kappa_metric(preds, dtrain):
 	    labels = dtrain.get_label()

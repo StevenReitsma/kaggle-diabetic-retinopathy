@@ -12,6 +12,8 @@ from params import *
 import numpy as np
 from skll.metrics import kappa
 
+from lasagne.nonlinearities import LeakyRectify
+
 def quadratic_kappa(true, predicted):
     return kappa(true, predicted, weights='quadratic')
 
@@ -113,6 +115,14 @@ def define_net():
 
         maxout1_pool_size=2,
         maxout2_pool_size=2,
+
+        conv0_nonlinearity = LeakyRectify(0.1),
+        conv1_nonlinearity = LeakyRectify(0.1),
+        conv2_nonlinearity = LeakyRectify(0.1),
+        conv3_nonlinearity = LeakyRectify(0.1),
+        conv4_nonlinearity = LeakyRectify(0.1),
+        hidden1_nonlinearity = LeakyRectify(0.1),
+        hidden2_nonlinearity = LeakyRectify(0.1),
 
         output_num_units=1 if params.REGRESSION else 5,
         output_nonlinearity=None if params.REGRESSION else nonlinearities.softmax,

@@ -10,7 +10,10 @@ import stats
 from modelsaver import ModelSaver
 from params import *
 import numpy as np
+from custom_layers import ConcatLayer, BatchConcatLayer
 from skll.metrics import kappa
+
+from lasagne.nonlinearities import LeakyRectify
 
 def quadratic_kappa(true, predicted):
     return kappa(true, predicted, weights='quadratic')
@@ -24,7 +27,7 @@ def define_net_specific_parameters():
         params.IMAGE_SOURCE = "../data/processed_512"
 
     params.PIXELS = 512
-    params.BATCH_SIZE = 32
+    params.BATCH_SIZE = 16
     params.MULTIPROCESS = False
 
     #params.PLOTTA_ENABLED = False
@@ -45,11 +48,11 @@ def define_net():
     keys = y.index.values
 
     if params.AUGMENT:
-        train_iterator = AugmentingParallelBatchIterator(keys, params.BATCH_SIZE, std, mean, y_all = y)
+        train_iterator = AugmentingParallelBatchIterator(keys, params.BATCH_SIZE, std, mean, y_all = y, n_eyes = 2)
     else:
-        train_iterator = ParallelBatchIterator(keys, params.BATCH_SIZE, std, mean, y_all = y)
+        train_iterator = ParallelBatchIterator(keys, params.BATCH_SIZE, std, mean, y_all = y, n_eyes = 2)
 
-    test_iterator = ParallelBatchIterator(keys, params.BATCH_SIZE, std, mean, y_all = y)
+    test_iterator = ParallelBatchIterator(keys, params.BATCH_SIZE, std, mean, y_all = y, n_eyes = 2)
 
     if params.REGRESSION:
         y = util.float32(y)
@@ -76,6 +79,8 @@ def define_net():
     net = NeuralNet(
         layers=[
             ('input', layers.InputLayer),
+            ('input2', layers.InputLayer),
+            ('merge', ConcatLayer),
             ('conv0', Conv2DLayer),
             ('pool0', MaxPool2DLayer),
             ('conv1', Conv2DLayer),
@@ -86,6 +91,7 @@ def define_net():
             ('pool3', MaxPool2DLayer),
             ('conv4', Conv2DLayer),
             ('pool4', MaxPool2DLayer),
+            ('merge2', BatchConcatLayer),
             ('dropouthidden1', layers.DropoutLayer),
             ('hidden1', layers.DenseLayer),
             ('maxout1', Maxout),
@@ -97,6 +103,9 @@ def define_net():
         ],
 
         input_shape=(None, params.CHANNELS, params.PIXELS, params.PIXELS),
+        input2_shape=(params.BATCH_SIZE, params.CHANNELS, params.PIXELS, params.PIXELS),
+        merge_incomings=['input','input2'],
+        merge_axis=0,
 
         conv0_num_filters=32, conv0_filter_size=(5, 5), conv0_stride=(2, 2), pool0_pool_size=(2, 2), pool0_stride=(2, 2),
         conv1_num_filters=64, conv1_filter_size=(3, 3), conv1_border_mode = 'same', pool1_pool_size=(2, 2), pool1_stride=(2, 2),
@@ -114,6 +123,14 @@ def define_net():
         maxout1_pool_size=2,
         maxout2_pool_size=2,
 
+        conv0_nonlinearity = LeakyRectify(0.1),
+        conv1_nonlinearity = LeakyRectify(0.1),
+        conv2_nonlinearity = LeakyRectify(0.1),
+        conv3_nonlinearity = LeakyRectify(0.1),
+        conv4_nonlinearity = LeakyRectify(0.1),
+        hidden1_nonlinearity = LeakyRectify(0.1),
+        hidden2_nonlinearity = LeakyRectify(0.1),
+
         output_num_units=1 if params.REGRESSION else 5,
         output_nonlinearity=None if params.REGRESSION else nonlinearities.softmax,
 
@@ -129,7 +146,7 @@ def define_net():
             stats.Stat(),
             ModelSaver()
         ],
-        max_epochs=500,
+        max_epochs=400,
         verbose=1,
 
         # Only relevant when create_validation_split = True

@@ -39,8 +39,11 @@ if __name__ == "__main__":
 	keys = y.index.values
 
 	preds = predict_ensemble(model, m_test, best_iteration, args.bilateral)
-	preds = np.round(preds[:, np.newaxis])
+	preds = preds[:, np.newaxis]
 
 	y.loc[keys] = preds
+	y.to_csv('ensembles/' + args.ensemble_model + '_unrounded.csv')
 
+	y.loc[keys] = np.round(preds)
+	y['level'] = y['level'].astype(int)
 	y.to_csv('ensembles/' + args.ensemble_model + '.csv')

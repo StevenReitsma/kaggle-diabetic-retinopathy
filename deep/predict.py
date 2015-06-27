@@ -157,7 +157,7 @@ if __name__ == "__main__":
 	parser.add_argument('--train', dest='train', action='store_true', help = 'create predictions for training set, not for test set. automatically sets --raw as well.')
 	parser.add_argument('--validation', dest='validation', action='store_true', help = 'create predictions for validation set, not for test set. automatically sets --raw as well.')
 	parser.add_argument('--avg', dest='avg', action='store_true', help = 'when using bilateral networks, average over the eyes, having correlation = 1.0 as result.')
-	parser.add_argument('--bilateral', dest='bilateral', action='store_true', help = 'the network was trained bilaterally.')
+	parser.add_argument('--bilateral', dest='bilateral', action='store_true', help = 'the network was trained bilaterally. note: this parameter has nothing to do with ensembling bilaterally')
 	parser.add_argument('model_id', metavar='model_id', type=str, help = 'timestamp ID for the model to optimize')
 
 	args = parser.parse_args()

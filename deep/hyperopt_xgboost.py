@@ -2,6 +2,9 @@ import xgboost as xgb
 import numpy as np
 import argparse
 from skll.metrics import kappa
+from functools import partial
+
+from hyperopt import fmin, tpe, hp, Trials, STATUS_OK
 
 from params import *
 
@@ -13,7 +16,7 @@ def bilateralize(data):
 	con = np.dstack((first, second)).transpose(0, 2, 1)
 	return con.reshape(data.shape[0], data.shape[1] * 2)
 
-def train_ensemble(activations_train, activations_valid, labels_train, labels_valid, filename, noeval, bilateral):
+def train_ensemble(param, activations_train, activations_valid, labels_train, labels_valid, filename, noeval, bilateral):
 	# Concatenate the activations of all models together
 	concat_train = np.concatenate(activations_train, axis = 1)
 	concat_valid = np.concatenate(activations_valid, axis = 1)
@@ -42,20 +45,35 @@ def train_ensemble(activations_train, activations_valid, labels_train, labels_va
 		dtrain = xgb.DMatrix(concat_train, labels_train)
 		dvalid = xgb.DMatrix(concat_valid, labels_valid)
 		evals = [(dtrain, 'train'), (dvalid, 'eval')]
+		
+	# Define parameters
+	# param = {
+	# 	'eta': 0.03,
+	# 	'gamma': 0,
+	# 	'max_depth': 6,
+	# 	'min_child_weight': 15,
+	# 	'max_delta_step': 0,
+	# 	'subsample': 0.8,
+	# 	'colsample_bytree': 0.5,
+	# 	'objective': 'reg:linear',
+	# 	'eval_metric': 'rmse',
+	# 	'num_class': 1,
+	# 	'silent': 1,
+	# }
 
-	param = {
-		'eta': 0.13,
-		'gamma': 0.5,
-		'max_depth': 5,
-		'min_child_weight': 20,
-		'max_delta_step': 8,
-		'subsample': 0.5,
-		'colsample_bytree': 0.25,
-		'objective': 'reg:linear',
-		'eval_metric': 'rmse',
-		'num_class': 1,
-		'silent': 1,
-	}
+	# param = {
+	# 	'eta': 0.03,
+	# 	'gamma': 0,
+	# 	'max_depth': 5,
+	# 	'min_child_weight': 15,
+	# 	'max_delta_step': 0,
+	# 	'subsample': 0.8,
+	# 	'colsample_bytree': 0.5,
+	# 	'objective': 'reg:linear',
+	# 	'eval_metric': 'rmse',
+	# 	'num_class': 1,
+	# 	'silent': 1,
+	# }
 
 	n_iter = 300
 
@@ -63,6 +81,7 @@ def train_ensemble(activations_train, activations_valid, labels_train, labels_va
 	    labels = dtrain.get_label()
 	    return 'kappa', -kappa(labels, preds, weights='quadratic')
 
+	print param
 	bst = xgb.train(param.items(), dtrain, n_iter, evals, early_stopping_rounds = 50, feval = kappa_metric)
 
 	bst.save_model('ensembles/' + filename)
@@ -73,7 +92,7 @@ def train_ensemble(activations_train, activations_valid, labels_train, labels_va
 
 	print "Best iteration: %i, best score: %.6f" % (best_iteration, best_score)
 
-	return bst, best_iteration
+	return {'loss': best_score, 'status': STATUS_OK}
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description='Train ensemble using XGBoost.')
@@ -99,4 +118,26 @@ if __name__ == "__main__":
 	y_train = np.load(params.IMAGE_SOURCE + "/y_train.npy")
 	y_valid = np.load(params.IMAGE_SOURCE + "/y_valid.npy")
 
-	model, best_iteration = train_ensemble(m_train, m_valid, y_train, y_valid, args.output, args.noeval, args.bilateral)
+
+	space = {
+				'eta': hp.quniform('eta', 0.01, 0.5, 0.01),
+				'gamma': hp.quniform('gamma', 0.05, 1, 0.05),
+				'max_depth': hp.quniform('max_depth', 1, 15, 1),
+				'min_child_weight': hp.quniform('min_child_weight', 0, 50, 1),
+				'max_delta_step': hp.quniform('max_delta_step', 0, 15, 1),
+				'subsample': hp.quniform('subsample', 0.05, 1, 0.05),
+				'colsample_bytree': hp.quniform('colsample_bytree', 0.05, 1, 0.05),
+				'objective': 'reg:linear',
+				'eval_metric': 'rmse',
+				'num_class': 1,
+				'silent': 1,
+	}
+
+	partial = partial(train_ensemble, activations_train = m_train, activations_valid = m_valid, labels_train = y_train, labels_valid = y_valid, filename = args.output, noeval = args.noeval, bilateral = args.bilateral)
+
+	trials = Trials()
+	best = fmin(partial, space, algo=tpe.suggest, trials=trials, max_evals=100)
+
+	print best
+
+	#model, best_iteration = train_ensemble(m_train, m_valid, y_train, y_valid, args.output, args.noeval, args.bilateral)

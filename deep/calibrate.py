@@ -11,8 +11,6 @@ def calibrate_distribution(input):
 	images_per_bin = np.cast['int32'](np.round(REAL_DISTRIBUTION * sorted_df.shape[0]))
 	start_indices_per_bin = np.concatenate(([0], np.cumsum(images_per_bin)))
 
-	bins = []
-
 	for i in range(len(REAL_DISTRIBUTION)):
 		r = sorted_df.ix[start_indices_per_bin[i]:start_indices_per_bin[i+1]]
 		keys = r.index.values

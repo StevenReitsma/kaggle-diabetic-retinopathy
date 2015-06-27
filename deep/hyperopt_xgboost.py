@@ -45,35 +45,6 @@ def train_ensemble(param, activations_train, activations_valid, labels_train, la
 		dtrain = xgb.DMatrix(concat_train, labels_train)
 		dvalid = xgb.DMatrix(concat_valid, labels_valid)
 		evals = [(dtrain, 'train'), (dvalid, 'eval')]
-		
-	# Define parameters
-	# param = {
-	# 	'eta': 0.03,
-	# 	'gamma': 0,
-	# 	'max_depth': 6,
-	# 	'min_child_weight': 15,
-	# 	'max_delta_step': 0,
-	# 	'subsample': 0.8,
-	# 	'colsample_bytree': 0.5,
-	# 	'objective': 'reg:linear',
-	# 	'eval_metric': 'rmse',
-	# 	'num_class': 1,
-	# 	'silent': 1,
-	# }
-
-	# param = {
-	# 	'eta': 0.03,
-	# 	'gamma': 0,
-	# 	'max_depth': 5,
-	# 	'min_child_weight': 15,
-	# 	'max_delta_step': 0,
-	# 	'subsample': 0.8,
-	# 	'colsample_bytree': 0.5,
-	# 	'objective': 'reg:linear',
-	# 	'eval_metric': 'rmse',
-	# 	'num_class': 1,
-	# 	'silent': 1,
-	# }
 
 	n_iter = 300
 

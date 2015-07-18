@@ -41,7 +41,7 @@ def process_image(image_path, target_dir, method = 'CLAHE'):
 
     recombined = cv2.merge((b,g,r))
 
-    cv2.imwrite(target_dir + image_name + '.jpeg', recombined)
+    cv2.imwrite(target_dir + image_name + '.jpeg', recombined, [cv2.cv.CV_IMWRITE_JPEG_QUALITY,100])
 
 
 def hist_eq(image_dir = 'test_hist/', target_dir = 'test_result_hist/', method = 'CLAHE'):

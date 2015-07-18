@@ -37,6 +37,11 @@ class ImageIO():
         for fileName in fnames:
 
             image = imread(fileName, as_grey=False)
+            if hasattr(mean, 'shape') and image.shape != mean.shape:
+                print "Shape mismatch, resaving image %s" % fileName
+                scipy.misc.imsave(fileName, [image,image,image])
+                image = imread(fileName, as_grey=False)
+                i += 1
 
             n = n + 1
             delta = image - mean

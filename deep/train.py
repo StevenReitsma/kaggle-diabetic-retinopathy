@@ -30,10 +30,11 @@ def fit(model_id = None):
     net, X, y = d.define_net()
 
     # Add plotta
-    plotta = PlottaDiabetic(module, "quizoo.nl", 1225)
-    net.on_training_started.append(PlottaStart(plotta))
-    net.on_training_finished.append(PlottaStop(plotta))
-    net.on_epoch_finished.append(PlottaUpdate(plotta))
+    if params.PLOTTA_ENABLED:
+        plotta = PlottaDiabetic(module, "quizoo.nl", 1225)
+        net.on_training_started.append(PlottaStart(plotta))
+        net.on_training_finished.append(PlottaStop(plotta))
+        net.on_epoch_finished.append(PlottaUpdate(plotta))
 
     net.fit(X, y)
 

@@ -59,7 +59,7 @@ def define_net():
         # Half of coma does not support cuDNN, check whether we can use it on this node
         # If not, use cuda_convnet bindings
         from theano.sandbox.cuda.dnn import dnn_available
-        if dnn_available():
+        if dnn_available() and not params.DISABLE_CUDNN:
             from lasagne.layers import dnn
             Conv2DLayer = dnn.Conv2DDNNLayer
             MaxPool2DLayer = dnn.MaxPool2DDNNLayer
@@ -99,7 +99,7 @@ def define_net():
         input_shape=(None, params.CHANNELS, params.PIXELS, params.PIXELS),
 
         conv0_num_filters=32, conv0_filter_size=(5, 5), conv0_stride=(2, 2), pool0_pool_size=(2, 2), pool0_stride=(2, 2),
-        conv1_num_filters=64, conv1_filter_size=(5, 5), conv1_border_mode = 'same', conv1_stride=(2, 2), pool1_pool_size=(2, 2), pool1_stride=(2, 2),
+        conv1_num_filters=64, conv1_filter_size=(3, 3), conv1_border_mode = 'same', pool1_pool_size=(2, 2), pool1_stride=(2, 2),
         conv2_num_filters=128, conv2_filter_size=(3, 3), conv2_border_mode = 'same', pool2_pool_size=(2, 2), pool2_stride=(2, 2),
         conv3_num_filters=192, conv3_filter_size=(3, 3), conv3_border_mode = 'same', pool3_pool_size=(2, 2), pool3_stride=(2, 2),
         conv4_num_filters=256, conv4_filter_size=(3, 3), conv4_border_mode = 'same', pool4_pool_size=(2, 2), pool4_stride=(2, 2),

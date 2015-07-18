@@ -4,7 +4,7 @@
 #SBATCH --gres=gpu:1
 
 # Set maximum run time to two days
-#SBATCH --time=4-00:00:00
+#SBATCH --time=7-00:00:00
 
 # Run script on long partition (lowest priority)
 #SBATCH --partition=long
@@ -19,7 +19,7 @@
 #SBATCH --cpus-per-task=4
 
 # Set name
-#SBATCH --job-name=512
+#SBATCH --job-name=512_ns_leaky
 
 # Set notification email
 #SBATCH --mail-user=s.reitsma@ru.nl

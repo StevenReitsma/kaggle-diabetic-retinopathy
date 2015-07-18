@@ -4,7 +4,7 @@
 #SBATCH --gres=gpu:1
 
 # Set maximum run time to two days
-#SBATCH --time=4-00:00:00
+#SBATCH --time=7-00:00:00
 
 # Run script on long partition (lowest priority)
 #SBATCH --partition=long
@@ -19,7 +19,7 @@
 #SBATCH --cpus-per-task=4
 
 # Set name
-#SBATCH --job-name=512
+#SBATCH --job-name=exp_noisy
 
 # Set notification email
 #SBATCH --mail-user=s.reitsma@ru.nl
@@ -44,7 +44,8 @@ curl --silent -X POST --data-urlencode "payload={\"channel\": \"#coma-status\", 
 
 # Copy files from /vol/astro0 to /scratch over InfiniBand for local I/O access
 echo "Copying files from /vol/astro0 to /scratch"
-rsync -a --exclude="processed" --exclude="models" $REMOTE_DIR/* $SCRATCH_DIR/
+rsync -a $REMOTE_DIR/processed_noisy $SCRATCH_DIR/
+rsync -a $REMOTE_DIR/*.csv $SCRATCH_DIR/
 
 # Start script and disable output buffering
 echo "Running script"

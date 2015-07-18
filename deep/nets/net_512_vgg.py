@@ -12,6 +12,8 @@ from params import *
 import numpy as np
 from skll.metrics import kappa
 
+from lasagne.nonlinearities import LeakyRectify
+
 def quadratic_kappa(true, predicted):
     return kappa(true, predicted, weights='quadratic')
 
@@ -28,6 +30,7 @@ def define_net_specific_parameters():
     params.MULTIPROCESS = False
 
     #params.PLOTTA_ENABLED = False
+    #params.DISABLE_CUDNN = True
 
 def define_net():
     define_net_specific_parameters()
@@ -59,7 +62,7 @@ def define_net():
         # Half of coma does not support cuDNN, check whether we can use it on this node
         # If not, use cuda_convnet bindings
         from theano.sandbox.cuda.dnn import dnn_available
-        if dnn_available():
+        if dnn_available() and not params.DISABLE_CUDNN:
             from lasagne.layers import dnn
             Conv2DLayer = dnn.Conv2DDNNLayer
             MaxPool2DLayer = dnn.MaxPool2DDNNLayer
@@ -76,16 +79,25 @@ def define_net():
     net = NeuralNet(
         layers=[
             ('input', layers.InputLayer),
+
             ('conv0', Conv2DLayer),
             ('pool0', MaxPool2DLayer),
+
             ('conv1', Conv2DLayer),
             ('pool1', MaxPool2DLayer),
+
             ('conv2', Conv2DLayer),
-            ('pool2', MaxPool2DLayer),
             ('conv3', Conv2DLayer),
-            ('pool3', MaxPool2DLayer),
+            ('pool2', MaxPool2DLayer),
+
             ('conv4', Conv2DLayer),
+            ('conv5', Conv2DLayer),
+            ('pool3', MaxPool2DLayer),
+
+            ('conv6', Conv2DLayer),
+            ('conv7', Conv2DLayer),
             ('pool4', MaxPool2DLayer),
+
             ('dropouthidden1', layers.DropoutLayer),
             ('hidden1', layers.DenseLayer),
             ('maxout1', Maxout),
@@ -98,14 +110,21 @@ def define_net():
 
         input_shape=(None, params.CHANNELS, params.PIXELS, params.PIXELS),
 
-        conv0_num_filters=32, conv0_filter_size=(5, 5), conv0_stride=(2, 2), pool0_pool_size=(2, 2), pool0_stride=(2, 2),
-        conv1_num_filters=64, conv1_filter_size=(5, 5), conv1_border_mode = 'same', conv1_stride=(2, 2), pool1_pool_size=(2, 2), pool1_stride=(2, 2),
-        conv2_num_filters=128, conv2_filter_size=(3, 3), conv2_border_mode = 'same', pool2_pool_size=(2, 2), pool2_stride=(2, 2),
-        conv3_num_filters=192, conv3_filter_size=(3, 3), conv3_border_mode = 'same', pool3_pool_size=(2, 2), pool3_stride=(2, 2),
-        conv4_num_filters=256, conv4_filter_size=(3, 3), conv4_border_mode = 'same', pool4_pool_size=(2, 2), pool4_stride=(2, 2),
+        conv0_num_filters=32, conv0_filter_size=(5, 5), conv0_border_mode = 'same', conv0_stride=(2, 2), pool0_pool_size=(2, 2), pool0_stride=(2, 2),
 
-        hidden1_num_units=1024,
-        hidden2_num_units=1024,
+        conv1_num_filters=64, conv1_filter_size=(3, 3), conv1_border_mode = 'same', pool1_pool_size=(2, 2), pool1_stride=(2, 2),
+
+        conv2_num_filters=128, conv2_filter_size=(3, 3), conv2_border_mode = 'same',
+        conv3_num_filters=128, conv3_filter_size=(3, 3), conv3_border_mode = 'same', pool2_pool_size=(2, 2), pool2_stride=(2, 2),
+
+        conv4_num_filters=256, conv4_filter_size=(3, 3), conv4_border_mode = 'same',
+        conv5_num_filters=256, conv5_filter_size=(3, 3), conv5_border_mode = 'same', pool3_pool_size=(2, 2), pool3_stride=(2, 2),
+
+        conv6_num_filters=256, conv6_filter_size=(3, 3), conv6_border_mode = 'same',
+        conv7_num_filters=256, conv7_filter_size=(3, 3), conv7_border_mode = 'same', pool4_pool_size=(2, 2), pool4_stride=(2, 2),
+
+        hidden1_num_units=2048,
+        hidden2_num_units=2048,
 
         dropouthidden1_p=0.5,
         dropouthidden2_p=0.5,
@@ -113,6 +132,14 @@ def define_net():
 
         maxout1_pool_size=2,
         maxout2_pool_size=2,
+
+        conv0_nonlinearity = LeakyRectify(0.1),
+        conv1_nonlinearity = LeakyRectify(0.1),
+        conv2_nonlinearity = LeakyRectify(0.1),
+        conv3_nonlinearity = LeakyRectify(0.1),
+        conv4_nonlinearity = LeakyRectify(0.1),
+        hidden1_nonlinearity = LeakyRectify(0.1),
+        hidden2_nonlinearity = LeakyRectify(0.1),
 
         output_num_units=1 if params.REGRESSION else 5,
         output_nonlinearity=None if params.REGRESSION else nonlinearities.softmax,

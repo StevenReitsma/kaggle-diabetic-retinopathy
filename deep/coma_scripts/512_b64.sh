@@ -19,7 +19,7 @@
 #SBATCH --cpus-per-task=4
 
 # Set name
-#SBATCH --job-name=512
+#SBATCH --job-name=512_b64
 
 # Set notification email
 #SBATCH --mail-user=s.reitsma@ru.nl

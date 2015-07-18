@@ -24,7 +24,7 @@ def define_net_specific_parameters():
         params.IMAGE_SOURCE = "../data/processed_512"
 
     params.PIXELS = 512
-    params.BATCH_SIZE = 32
+    params.BATCH_SIZE = 64
     params.MULTIPROCESS = False
 
     #params.PLOTTA_ENABLED = False
